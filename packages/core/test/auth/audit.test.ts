@@ -45,8 +45,7 @@ describe("AuditLog", () => {
       event: "auth.refresh.success",
       provider: "anthropic",
       accountId: "default",
-      // biome-ignore lint/suspicious/noExplicitAny: mimic callsite passing unknown meta shape
-      meta: { accessToken: "LEAKY_TOKEN_XYZ", keep: "ok" } as any,
+      meta: { accessToken: "LEAKY_TOKEN_XYZ", keep: "ok" } as unknown as Record<string, string>,
     })
     const content = await readFile(join(dir, "audit.log"), "utf8")
     expect(content).not.toContain("LEAKY_TOKEN_XYZ")
