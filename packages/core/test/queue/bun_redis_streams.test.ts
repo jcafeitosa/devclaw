@@ -1,15 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { BunRedisStreamsQueue } from "../../src/queue/bun_redis_streams.ts"
 
-const REDIS_URL = process.env.BUN_TEST_REDIS
-const d = REDIS_URL ? describe : describe.skip
+const REDIS_URL = process.env.BUN_TEST_REDIS ?? "redis://localhost:6379"
 
-d("BunRedisStreamsQueue (integration, requires BUN_TEST_REDIS)", () => {
+describe("BunRedisStreamsQueue (integration)", () => {
   const queue = `test-queue-${Date.now()}`
   let adapter: BunRedisStreamsQueue
 
   beforeAll(async () => {
-    adapter = new BunRedisStreamsQueue({ url: REDIS_URL!, group: "test-group", consumer: "test-1" })
+    adapter = new BunRedisStreamsQueue({ url: REDIS_URL, group: "test-group", consumer: "test-1" })
     await adapter.ensureGroup(queue)
   })
 
