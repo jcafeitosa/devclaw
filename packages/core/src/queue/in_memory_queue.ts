@@ -1,4 +1,3 @@
-import { ulid } from "./ulid.ts"
 import type {
   DequeueOptions,
   EnqueueOptions,
@@ -7,6 +6,7 @@ import type {
   QueueCapabilities,
   QueueMessage,
 } from "./types.ts"
+import { ulid } from "./ulid.ts"
 
 interface Slot<T> {
   msg: QueueMessage<T>

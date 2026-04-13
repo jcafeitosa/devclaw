@@ -4,9 +4,14 @@
   "private": true,
   "license": "MIT",
   "author": "Julio Cezar A. Feitosa",
-  "repository": { "type": "git", "url": "https://github.com/jcafeitosa/devclaw.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jcafeitosa/devclaw.git"
+  },
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
