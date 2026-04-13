@@ -1,0 +1,26 @@
+{
+  "name": "devclaw",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "author": "Julio Cezar A. Feitosa",
+  "repository": { "type": "git", "url": "https://github.com/jcafeitosa/devclaw.git" },
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
+    "format": "biome format --write"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.11",
+    "@types/bun": "latest",
+    "turbo": "2.9.6",
+    "typescript": "6.0.2"
+  },
+  "engines": {
+    "bun": ">=1.3.12"
+  }
+}
