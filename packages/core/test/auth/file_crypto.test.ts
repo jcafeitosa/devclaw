@@ -24,7 +24,8 @@ describe("FileCrypto (AES-256-GCM + Argon2id-derived key)", () => {
     const key = await deriveKey(passphrase)
     const blob = await encrypt(key, "payload")
     const bytes = new Uint8Array(blob)
-    bytes[bytes.length - 1] ^= 0xff
+    const last = bytes.length - 1
+    bytes[last] = (bytes[last] ?? 0) ^ 0xff
     await expect(decrypt(key, bytes.buffer)).rejects.toBeDefined()
   })
 
