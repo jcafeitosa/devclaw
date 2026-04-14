@@ -11,6 +11,7 @@ import {
   makeCodexBridge,
   makeGeminiBridge,
 } from "@devclaw/core/bridge"
+import { makeDefaultBudgetEnforcer } from "@devclaw/core/cost"
 import { ProviderCatalog, registerBuiltins } from "@devclaw/core/provider"
 import { createApp, issueAuthToken } from "./app.ts"
 
@@ -62,17 +63,19 @@ async function bootstrap(): Promise<void> {
   bridges.register(makeCodexBridge({ authStore }))
   bridges.register(makeGeminiBridge())
   bridges.register(makeAiderBridge())
+  const budget = makeDefaultBudgetEnforcer()
   const fallback = new FallbackStrategy({
     registry: bridges,
     catalog,
     fallbackProviderId: catalog.list()[0]?.id,
+    budget,
   })
 
   const jwtSecret = await loadOrGenerateJwtSecret(home)
   const daemonToken = await loadOrIssueToken(home, jwtSecret)
 
   const app = createApp({
-    runtime: { authStore, catalog, bridges, fallback },
+    runtime: { authStore, catalog, bridges, fallback, budget },
     auth: { jwtSecret, requireFromLoopback: true },
   })
   const port = Number(process.env.PORT ?? 4551)

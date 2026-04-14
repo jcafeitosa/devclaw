@@ -53,7 +53,7 @@ Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas found
 | ID | Task | Impact | Status |
 |---|---|---|---|
 | **KILL-01** | **`/consensus <task>` — cross-CLI fan-out + reflection winner** | Demo único que nenhum rival tem | ✅ (2026-04-14, 5 superfícies: core `runConsensus` + `devclaw consensus [--live]` CLI + `POST /consensus` daemon + slash builtin `consensus` + Ink TUI live render via `ConsensusObserver`, +22 tests) |
-| **C-02** | Token-aware ranker: `score = rel × 1/(1+α·log(tokens))`, α=0.35 | -15% custo adicional; reordena prefix-stable para cache | ⬜ |
+| **C-02** | Token-aware ranker: `score = rel × 1/(1+α·log(tokens))`, α=0.35 | -15% custo adicional; reordena prefix-stable para cache | ✅ (2026-04-14, `TokenAwareRanker` aplicado no `ContextAssembler` com α=0.35, +2 testes) |
 | **C-03** | Budget hard-stop $0.15/task, $2/session, $10/day + TUI warnings | Paperclip parity | ⬜ |
 | **I-01** | Google AI + Ollama + **OpenRouter** (OpenRouter = 100+ modelos em 1 adapter) | Substitui H-03; unlock offline + rate-limit diversification | ⬜ |
 | **D-02** | 10 slash commands wired: `/help /tdd /code-review /plan /doctor /init /checkpoint /rewind /tasks /clear` | Hoje só 4 em builtins.ts, **nenhum wired ao CLI** | ⬜ |

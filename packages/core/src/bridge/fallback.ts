@@ -1,4 +1,5 @@
 import type { SafetyKernel } from "../kernel/index.ts"
+import type { BudgetEnforcer } from "../cost/budget.ts"
 import type { ProviderCatalog } from "../provider/catalog.ts"
 import { createDefaultModerator } from "../safety/moderator.ts"
 import type { Moderator } from "../safety/types.ts"
@@ -12,6 +13,7 @@ export interface FallbackStrategyConfig {
   fallbackModel?: string
   moderator?: Moderator
   kernel?: SafetyKernel
+  budget?: BudgetEnforcer
 }
 
 export class FallbackStrategy {
@@ -24,6 +26,7 @@ export class FallbackStrategy {
         if (self.cfg.kernel) {
           const bridge = await self.pickBridge(req)
           if (bridge) {
+            self.chargeBudget(req, bridge.estimateCost(req).costUsd)
             for await (const event of self.cfg.kernel.invoke(
               {
                 actor: req.agentId,
@@ -93,6 +96,7 @@ export class FallbackStrategy {
 
         const bridge = await self.pickBridge(req)
         if (bridge) {
+          self.chargeBudget(req, bridge.estimateCost(req).costUsd)
           for await (const event of bridge.execute(req)) yield event
           return
         }
@@ -130,5 +134,18 @@ export class FallbackStrategy {
     const preferred = await this.cfg.registry.select(req)
     if (preferred) return preferred
     return this.cfg.registry.selectByCapability(req, () => true)
+  }
+
+  private chargeBudget(req: BridgeRequest, plannedUsd: number): void {
+    if (!this.cfg.budget) return
+    this.cfg.budget.check({ taskId: req.taskId, sessionId: req.sessionId }, plannedUsd)
+    if (plannedUsd > 0) {
+      this.cfg.budget.record({
+        taskId: req.taskId,
+        sessionId: req.sessionId,
+        usd: plannedUsd,
+        at: Date.now(),
+      })
+    }
   }
 }

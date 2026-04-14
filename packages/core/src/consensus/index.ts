@@ -1,5 +1,6 @@
 import type { BridgeRegistry } from "../bridge/registry.ts"
 import type { Bridge, BridgeEvent, BridgeRequest, CliId } from "../bridge/types.ts"
+import type { BudgetEnforcer } from "../cost/budget.ts"
 import type { Step, StepState } from "../cognitive/types.ts"
 import type { ProviderCatalog } from "../provider/catalog.ts"
 import { RubricEvaluator } from "../reflection/evaluator.ts"
@@ -42,6 +43,7 @@ export interface ConsensusConfig {
   scorer: ConsensusScorer
   clis?: CliId[]
   observer?: ConsensusObserver
+  budget?: BudgetEnforcer
 }
 
 export class ConsensusNoBridgesError extends Error {
@@ -125,8 +127,27 @@ export async function runConsensus(
     )
   }
 
+  const planned = bridges.map((bridge) => ({
+    bridge,
+    plannedUsd: bridge.estimateCost(req).costUsd,
+  }))
+  const plannedUsd = planned.reduce((sum, item) => sum + item.plannedUsd, 0)
+  if (cfg.budget) {
+    cfg.budget.check({ taskId: req.taskId, sessionId: req.sessionId }, plannedUsd)
+    if (plannedUsd > 0) {
+      for (const item of planned) {
+        cfg.budget.record({
+          taskId: req.taskId,
+          sessionId: req.sessionId,
+          usd: item.plannedUsd,
+          at: Date.now(),
+        })
+      }
+    }
+  }
+
   const participants = await Promise.all(
-    bridges.map((b) => drainBridge(b, req, cfg.observer)),
+    planned.map(({ bridge }) => drainBridge(bridge, req, cfg.observer)),
   )
 
   const scores: ConsensusScore[] = await Promise.all(

@@ -1,4 +1,5 @@
 import type { CliId } from "@devclaw/core/bridge"
+import { makeDefaultBudgetEnforcer } from "@devclaw/core/cost"
 import {
   ConsensusNoBridgesError,
   type ConsensusScorer,
@@ -57,13 +58,16 @@ export function makeConsensusCommand(
       const clis = parseCliList(args.flags.cli)
       const taskId =
         (typeof args.flags.task === "string" && args.flags.task) || `task_${Date.now()}`
+      const sessionId = `session_${Date.now()}`
       const runtime = await getRuntime()
+      const budget = runtime.budget ?? makeDefaultBudgetEnforcer()
       try {
         if (args.flags.json) {
           const result = await runConsensus(
-            { bridges: runtime.bridges, scorer: defaultLengthScorer, clis },
+            { bridges: runtime.bridges, scorer: defaultLengthScorer, clis, budget },
             {
               taskId,
+              sessionId,
               agentId: "cli",
               cli: "claude",
               cwd: process.cwd(),
@@ -78,14 +82,16 @@ export function makeConsensusCommand(
             runtime,
             prompt,
             taskId,
+            sessionId,
             clis,
             scorer: defaultLengthScorer,
           })
         }
         const result = await runConsensus(
-          { bridges: runtime.bridges, scorer: defaultLengthScorer, clis },
+          { bridges: runtime.bridges, scorer: defaultLengthScorer, clis, budget },
           {
             taskId,
+            sessionId,
             agentId: "cli",
             cli: "claude",
             cwd: process.cwd(),

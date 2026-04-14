@@ -7,6 +7,7 @@ import {
   makeLLMJudgeScorer,
   runConsensus,
 } from "@devclaw/core/consensus"
+import { makeDefaultBudgetEnforcer, type BudgetEnforcer } from "@devclaw/core/cost"
 import { discover } from "@devclaw/core/discovery"
 import {
   ACPServer,
@@ -26,6 +27,7 @@ export interface DaemonRuntime {
   catalog: ProviderCatalog
   bridges: BridgeRegistry
   fallback: FallbackStrategy
+  budget?: BudgetEnforcer
 }
 
 export interface AppConfig {
@@ -218,6 +220,7 @@ function buildElysiaApp(cfg: AppConfig) {
       async ({ body }) => {
         const events = rt.fallback.execute({
           taskId: body.taskId ?? `task_${Date.now()}`,
+          sessionId: body.sessionId ?? body.agentId ?? "daemon",
           agentId: body.agentId ?? "daemon",
           cli: body.cli,
           cwd: body.cwd ?? process.cwd(),
@@ -245,6 +248,7 @@ function buildElysiaApp(cfg: AppConfig) {
           cwd: t.Optional(t.String()),
           taskId: t.Optional(t.String()),
           agentId: t.Optional(t.String()),
+          sessionId: t.Optional(t.String()),
         }),
       },
     )
@@ -253,10 +257,17 @@ function buildElysiaApp(cfg: AppConfig) {
       async ({ body, status }) => {
         try {
           const scorer = consensusScorer(rt, body.prompt)
+          const budget = rt.budget ?? makeDefaultBudgetEnforcer()
           const result = await runConsensus(
-            { bridges: rt.bridges, scorer, clis: body.clis as CliId[] | undefined },
+            {
+              bridges: rt.bridges,
+              scorer,
+              clis: body.clis as CliId[] | undefined,
+              budget,
+            },
             {
               taskId: body.taskId ?? `task_${Date.now()}`,
+              sessionId: body.sessionId ?? body.agentId ?? "daemon",
               agentId: body.agentId ?? "daemon",
               cli: "claude",
               cwd: body.cwd ?? process.cwd(),
@@ -277,6 +288,7 @@ function buildElysiaApp(cfg: AppConfig) {
           clis: t.Optional(t.Array(t.String())),
           taskId: t.Optional(t.String()),
           agentId: t.Optional(t.String()),
+          sessionId: t.Optional(t.String()),
           cwd: t.Optional(t.String()),
         }),
       },
@@ -313,6 +325,7 @@ function buildElysiaApp(cfg: AppConfig) {
             taskId?: string
             cwd?: string
             agentId?: string
+            sessionId?: string
           }
           if (!payload.prompt) {
             ws.send({
@@ -325,6 +338,7 @@ function buildElysiaApp(cfg: AppConfig) {
           }
           const events = rt.fallback.execute({
             taskId: payload.taskId ?? `task_${Date.now()}`,
+            sessionId: payload.sessionId ?? payload.agentId ?? "ws",
             agentId: payload.agentId ?? "ws",
             cli: payload.cli ?? "claude",
             cwd: payload.cwd ?? process.cwd(),

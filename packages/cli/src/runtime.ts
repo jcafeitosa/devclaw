@@ -15,6 +15,7 @@ import {
   ProviderCatalog,
   registerBuiltins,
 } from "@devclaw/core/provider"
+import { makeDefaultBudgetEnforcer, type BudgetEnforcer } from "@devclaw/core/cost"
 
 export interface RuntimeConfig {
   home?: string
@@ -27,6 +28,7 @@ export interface Runtime {
   catalog: ProviderCatalog
   bridges: BridgeRegistry
   fallback: FallbackStrategy
+  budget?: BudgetEnforcer
   rootDir: string
   home: string
 }
@@ -50,13 +52,15 @@ export async function createRuntime(cfg: RuntimeConfig = {}): Promise<Runtime> {
   bridges.register(makeCodexBridge({ authStore }))
   bridges.register(makeGeminiBridge())
   bridges.register(makeAiderBridge())
+  const budget = makeDefaultBudgetEnforcer()
   const firstProvider = catalog.list()[0]
   const fallback = new FallbackStrategy({
     registry: bridges,
     catalog,
     fallbackProviderId: firstProvider?.id,
+    budget,
   })
-  return { authStore, catalog, bridges, fallback, rootDir, home }
+  return { authStore, catalog, bridges, fallback, budget, rootDir, home }
 }
 
 export function mockAnthropicRegistered(store: AuthStore, catalog: ProviderCatalog): void {
