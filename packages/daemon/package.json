@@ -12,7 +12,8 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "start": "bun run src/bin.ts"
+    "start": "bun run src/bin.ts",
+    "dev": "bun --hot src/bin.ts"
   },
   "dependencies": {
     "@devclaw/core": "workspace:*",
