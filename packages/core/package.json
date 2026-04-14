@@ -11,6 +11,7 @@
     "./cognitive": "./src/cognitive/index.ts",
     "./comm": "./src/comm/index.ts",
     "./context": "./src/context/index.ts",
+    "./correction": "./src/correction/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./hook": "./src/hook/index.ts",
     "./memory": "./src/memory/index.ts",
