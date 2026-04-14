@@ -145,7 +145,7 @@ All 14 modules implemented with real logic, passing tests.
 | H-05 | **E2E integration test** | Full lifecycle: auth → discover → provider → bridge → cognitive → tool → result. In `test/e2e/` | `packages/core/test/e2e/` (new) | ⬜ |
 | H-06 | **Root dev scripts** | Wire `bun dev:daemon` (Elysia hot reload), `bun dev:docs` (Astro dev server) in root `package.json`, turbo dev pipeline | `package.json`, `turbo.json` | ⬜ |
 | H-07 | **Store adapters: in-memory → SQLite** | Replace `Map<>` stores (work, checkpoint, learning, comm) with SQLite via `bun:sqlite` + Drizzle, keeping in-memory as fallback | `packages/core/src/work/store.ts`, `checkpoint/store.ts`, `learning/store.ts`, `comm/thread.ts` | ⬜ |
-| H-08 | **Missing test coverage for audit module** | audit has 1 test file (136 lines) vs 249 lines of src — needs hash chain verification tests, multi-sink tests | `packages/core/test/audit/` | ⬜ |
+| H-08 | **Missing test coverage for audit module** | audit has 1 test file (136 lines) vs 249 lines of src — needs hash chain verification tests, multi-sink tests | `packages/core/test/audit/` | ✅ |
 | H-09 | **Terminal: real PTY support** | Current `BunPtyAdapter` uses `Bun.spawn` without PTY. Add `node-pty` or native PTY via Bun FFI for resize/signals | `packages/core/src/terminal/adapter.ts` | ⬜ |
 
 ---
