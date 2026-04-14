@@ -1,4 +1,5 @@
 import { EventEmitter } from "../util/event_emitter.ts"
+import type { ACPSessionStore } from "./acp_session_store.ts"
 import type {
   ACPCapabilities,
   ACPInitializeParams,
@@ -64,6 +65,7 @@ export interface ACPServerConfig {
   capabilities?: Partial<ACPCapabilities>
   handlers?: ACPServerHandlers
   send?: (raw: string) => void | Promise<void>
+  sessionStore?: ACPSessionStore
 }
 
 interface InflightPrompt {
@@ -79,6 +81,7 @@ export class ACPServer {
   readonly events = new EventEmitter<ACPServerEvents>()
   readonly capabilities: ACPCapabilities
   private readonly handlers: ACPServerHandlers
+  private readonly sessionStore?: ACPSessionStore
   private readonly sessions = new Map<string, ACPSessionInfo>()
   private readonly inflight = new Map<string, InflightPrompt>()
   private readonly pendingServerReqs = new Map<number, PendingServerRequest>()
@@ -94,6 +97,7 @@ export class ACPServer {
     this.capabilities = { ...DEFAULT_ACP_CAPABILITIES, ...(cfg.capabilities ?? {}) }
     this.handlers = cfg.handlers ?? {}
     this.send = cfg.send
+    this.sessionStore = cfg.sessionStore
   }
 
   async handle(raw: string): Promise<string | null> {
@@ -190,6 +194,7 @@ export class ACPServer {
           agentName: this.agentName,
         }
     this.sessions.set(info.id, info)
+    await this.sessionStore?.save(info)
     this.events.emit("session_opened", { info })
     return info
   }
@@ -199,18 +204,25 @@ export class ACPServer {
     if (handler) {
       const info = await handler(params)
       this.sessions.set(info.id, info)
+      await this.sessionStore?.save(info)
       return info
     }
     const existing = this.sessions.get(params.sessionId)
-    if (!existing) throw JsonRpcError.invalidParams(`session '${params.sessionId}' not found`)
-    return existing
+    if (existing) return existing
+    const persisted = await this.sessionStore?.get(params.sessionId)
+    if (persisted) {
+      this.sessions.set(persisted.id, persisted)
+      return persisted
+    }
+    throw JsonRpcError.invalidParams(`session '${params.sessionId}' not found`)
   }
 
   private async onSessionClose(params: { sessionId: string }): Promise<{ closed: boolean }> {
     const existed = this.sessions.delete(params.sessionId)
+    const persisted = await this.sessionStore?.delete(params.sessionId)
     await this.handlers.closeSession?.(params.sessionId)
     this.events.emit("session_closed", { sessionId: params.sessionId })
-    return { closed: existed }
+    return { closed: existed || Boolean(persisted) }
   }
 
   private async onSessionCancel(params: { sessionId: string }): Promise<{ cancelled: boolean }> {
