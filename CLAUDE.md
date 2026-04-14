@@ -429,9 +429,10 @@ devclaw/
 
 ## Current status + what to do next
 
-**Completed:** Phase 1-5 (37 core modules, 266 src, 1105 tests passing).
-**Current:** Hardening + integration gaps before Phase 6 UI.
+**Completed:** Phase 1-5 + Phase 7 protocols + Phase 8 partial (37 core modules, 266 src, 1110 tests, 1945 assertions, all passing).
+**Current:** Hardening + integration gaps (9 tasks: H-01 to H-09) before Phase 6 UI.
 **Milestones reached:** M1 (end-to-end task), M2 (Codex OAuth), M3 (multi-agent).
+**Key gaps:** Zero database (all in-memory), only 2 provider adapters, safety not wired into pipeline.
 
 ### Task board: `docs/TODO.md`
 
