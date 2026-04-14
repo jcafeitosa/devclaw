@@ -31,7 +31,7 @@ function setup() {
 }
 
 describe("built-in MCP tools", () => {
-  test("registers all 6 tools", async () => {
+  test("registers all 7 tools", async () => {
     const s = setup()
     const raw = await s.handle(JSON.stringify(makeRequest(1, "tools/list")))
     const tools = (JSON.parse(raw!) as { result: { tools: { name: string }[] } }).result.tools
@@ -43,6 +43,7 @@ describe("built-in MCP tools", () => {
       "get_project_overview",
       "get_skills_for",
       "search_context",
+      "submit_observation",
     ])
   })
 
