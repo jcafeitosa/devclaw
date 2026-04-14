@@ -42,7 +42,7 @@ Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas found
 | **H-03** | Provider adapters: Google AI + Ollama | — | ✅ (2026-04-14, via Vercel AI SDK + OpenAI-compat shim; registerBuiltins carrega ambos; I-01 OpenRouter herda mesmo padrão) |
 | **H-05** | E2E integration test | — | ✅ (2026-04-14, test/e2e/lifecycle.test.ts exercita auth→discover→provider→bridge→cognitive→tool→memory) |
 | **H-09** | Terminal real PTY (node-pty) | — | ✅ (2026-04-14, NodePtyAdapter default + BunPtyAdapter fallback, resize/signals/stdin funcionais) |
-| **S-03** | Permission persistence (SQLite + hot-reload) | H-01 | ⬜ |
+| **S-03** | Permission persistence (SQLite + hot-reload) | H-01 | ✅ (2026-04-14, `PermissionRuleStore` SQLite + `PersistentScopedPermissionEvaluator` with `rule_changed` reload, +4 test files green, `@devclaw/core` typecheck green) |
 | **I-02** | ACP session persistence + state machine + reconnect + pending-permission durable | H-01 | ⬜ |
 | **P-01** | Memory recall via `VectorAdapter` (pgvector HNSW) — fecha B1 (800ms→8ms) | A-01 | ⬜ |
 | **P-02** | Daemon concurrency semaphore + request draining + graceful shutdown | — | ⬜ |
