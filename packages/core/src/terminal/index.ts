@@ -1,4 +1,6 @@
+export * from "./audit.ts"
 export * from "./errors.ts"
+export * from "./redaction.ts"
 export * from "./registry.ts"
 export * from "./session.ts"
 export * from "./types.ts"
