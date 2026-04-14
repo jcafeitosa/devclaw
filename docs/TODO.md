@@ -43,7 +43,7 @@ Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas found
 | **H-05** | E2E integration test | — | ✅ (2026-04-14, test/e2e/lifecycle.test.ts exercita auth→discover→provider→bridge→cognitive→tool→memory) |
 | **H-09** | Terminal real PTY (node-pty) | — | ✅ (2026-04-14, NodePtyAdapter default + BunPtyAdapter fallback, resize/signals/stdin funcionais) |
 | **S-03** | Permission persistence (SQLite + hot-reload) | H-01 | ✅ (2026-04-14, `PermissionRuleStore` SQLite + `PersistentScopedPermissionEvaluator` with `rule_changed` reload, +4 test files green, `@devclaw/core` typecheck green) |
-| **I-02** | ACP session persistence + state machine + reconnect + pending-permission durable | H-01 | ⬜ |
+| **I-02** | ACP session persistence + state machine + reconnect + pending-permission durable | H-01 | 🟡 (2026-04-14, `ACPSessionStore` SQLite + `ACPServer.sessionStore` para `session/new/load/close`, e `ACPPermissionRequestStore` com replay de pending permissions via `setSend()/replayPendingPermissions()` no reconnect do transporte. Falta state machine ACP mais completa.) |
 | **P-01** | Memory recall via `VectorAdapter` (pgvector HNSW) — fecha B1 (800ms→8ms) | A-01 | ⬜ |
 | **P-02** | Daemon concurrency semaphore + request draining + graceful shutdown | — | ⬜ |
 | **D-01** | Binário `devclaw` (bin shim em package.json) + `devclaw doctor` com SHA256 binary pin | — | ⬜ |
@@ -52,7 +52,7 @@ Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas found
 
 | ID | Task | Impact | Status |
 |---|---|---|---|
-| **KILL-01** | **`/consensus <task>` — cross-CLI fan-out + reflection winner** | Demo único que nenhum rival tem | ⬜ |
+| **KILL-01** | **`/consensus <task>` — cross-CLI fan-out + reflection winner** | Demo único que nenhum rival tem | 🟡 (2026-04-14, `runConsensus(cfg, req)` + `ConsensusEngine` core prontos com fan-out paralelo + scorer pluggable + tie-break alfabético + graceful bridge error isolation, +8 testes. Falta: slash command `/consensus <task>` wiring e default LLM-judge scorer via RubricEvaluator) |
 | **C-02** | Token-aware ranker: `score = rel × 1/(1+α·log(tokens))`, α=0.35 | -15% custo adicional; reordena prefix-stable para cache | ⬜ |
 | **C-03** | Budget hard-stop $0.15/task, $2/session, $10/day + TUI warnings | Paperclip parity | ⬜ |
 | **I-01** | Google AI + Ollama + **OpenRouter** (OpenRouter = 100+ modelos em 1 adapter) | Substitui H-03; unlock offline + rate-limit diversification | ⬜ |
