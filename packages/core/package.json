@@ -14,6 +14,7 @@
     "./checkpoint": "./src/checkpoint/index.ts",
     "./cognitive": "./src/cognitive/index.ts",
     "./comm": "./src/comm/index.ts",
+    "./consensus": "./src/consensus/index.ts",
     "./context": "./src/context/index.ts",
     "./correction": "./src/correction/index.ts",
     "./cost": "./src/cost/index.ts",
