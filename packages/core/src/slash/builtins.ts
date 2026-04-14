@@ -104,18 +104,40 @@ Produce:
 - Remediation proposals
 - Risk score per finding`
 
-const DOC_BODY = `---
-description: Explain the command and its next action
-agents: [coordinator]
-tools: [Read]
+const DOCTOR_BODY = `---
+description: Diagnose CLI bridge health + verify SHA256 pin
+agents: [coordinator, security]
+tools: [Read, Bash]
 isolation: none
 timeout_minutes: 10
-args:
-  - name: target
-    type: string
-    default: current
+args: []
 ---
-You are invoked as /{{name}}. Explain the next action for "{{args.target}}" and keep the answer concise.`
+You are invoked as /doctor. Report the health of Devclaw's CLI bridges.
+
+Checklist:
+1. Run \`devclaw doctor\` — capture status (ok / drift / missing).
+2. If drift: show expected vs actual SHA256; suggest \`devclaw doctor --pin\` after the operator confirms the binary.
+3. If missing: show install instructions for the CLI (claude, codex, gemini, aider).
+4. Summarize in 3 bullets: overall status, actions required, follow-up.`
+
+const INIT_BODY = `---
+description: Bootstrap a new project with devclaw.json + .devclaw layout
+agents: [coordinator, architect]
+tools: [Read, Write]
+isolation: worktree
+timeout_minutes: 15
+args:
+  - name: path
+    type: string
+    default: .
+---
+You are invoked as /init. Initialize a Devclaw workspace at "{{args.path}}".
+
+Steps:
+1. Ensure devclaw.json exists (create if missing); pick \`defaultProvider\` from what the user has auth for.
+2. Create .devclaw/ layout (locks/, cache/, logs/).
+3. Run discovery — report detected stack, CLIs, and conventions.
+4. Suggest which slash commands are immediately useful for this repo (consensus, tdd, code-review).`
 
 const CHECKPOINT_BODY = `---
 description: Create a checkpoint and report the recovery reference
@@ -203,9 +225,9 @@ export const BUILTIN_COMMAND_SOURCES: Record<string, string> = {
   clear: CLEAR_BODY,
   tdd: TDD_BODY,
   "code-review": CODE_REVIEW_BODY,
-  doctor: DOC_BODY,
+  doctor: DOCTOR_BODY,
   help: HELP_BODY,
-  init: DOC_BODY,
+  init: INIT_BODY,
   plan: PLAN_BODY,
   rewind: REWIND_BODY,
   tasks: TASKS_BODY,
