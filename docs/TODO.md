@@ -48,12 +48,12 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 
 **Milestone reached:** M3 — multi-agent collaboration ✅
 
-## Phase 3 — Self-Correction + Context
+## Phase 3 — Self-Correction + Context ✅
 
 | Module | Vault | Status |
 |---|---|---|
 | Self-Correction loop | `43_self_correction/` | ✅ |
-| Advanced CPE (skills integration) | `06_agent_os/skill_system` | ⬜ |
+| Advanced CPE (skills integration) | `06_agent_os/skill_system` | ✅ |
 
 ## Phase 4 — Learning
 
