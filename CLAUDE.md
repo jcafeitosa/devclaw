@@ -35,6 +35,30 @@ Stage: **pre-alpha, Phase 1 implementation** (per `vault://23_roadmap/phase_1_fo
 - ✅ Every PR lists the RED commit(s) + GREEN commit(s).
 - ✅ `bun test` must be green before declaring any task ✅.
 
+## Zero-tolerance gate (MANDATORY)
+
+> **All of the following are blocking.** Any of them failing = the task is NOT ✅. No exceptions, no "we'll fix it later", no "it's just a warning".
+
+**Before declaring ANY task done (or committing, or merging):**
+
+| Check | Command | Must be |
+|---|---|---|
+| Tests | `bun test` | `0 fail` across every package |
+| Lint | `bun run lint` | `0 errors, 0 warnings` (biome strict) |
+| Types | `bun run typecheck` in each package | zero diagnostics |
+| Format | `bun run format` (idempotent) | no diff after run |
+
+**Forbidden in the codebase:**
+- `test.skip(...)`, `describe.skip(...)`, `it.skip(...)`, `.todo(...)`, `.only(...)` — flaky or skipped tests mask regressions. Delete the test or fix it.
+- `// biome-ignore`, `// @ts-ignore`, `// @ts-expect-error`, `// eslint-disable` without a one-line justification on the same line explaining the non-obvious reason. "stylistic" is not a reason.
+- `any` (use `unknown` + type guards — per Style guide).
+- `console.log` left in production paths (`observability` module has the logger).
+- `TODO:` / `FIXME:` / `XXX:` comments without an issue/task ID.
+- Empty `catch {}` blocks (at minimum log + rethrow or transform to typed error).
+- Tests that rely on wall-clock sleeps >100ms without explicit reason documented.
+
+**If the gate is red, the ONLY acceptable next action is to fix it.** Do not write new features on top of a broken gate. Do not "park" it for later. Fix, verify, then proceed.
+
 Full methodology in `## Methodology (mandatory per ADR-014)` below.
 
 ## Spec
