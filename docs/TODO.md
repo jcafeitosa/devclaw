@@ -54,8 +54,8 @@ Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas found
 |---|---|---|---|
 | **KILL-01** | **`/consensus <task>` — cross-CLI fan-out + reflection winner** | Demo único que nenhum rival tem | ✅ (2026-04-14, 5 superfícies: core `runConsensus` + `devclaw consensus [--live]` CLI + `POST /consensus` daemon + slash builtin `consensus` + Ink TUI live render via `ConsensusObserver`, +22 tests) |
 | **C-02** | Token-aware ranker: `score = rel × 1/(1+α·log(tokens))`, α=0.35 | -15% custo adicional; reordena prefix-stable para cache | ✅ (2026-04-14, `TokenAwareRanker` aplicado no `ContextAssembler` com α=0.35, +2 testes) |
-| **C-03** | Budget hard-stop $0.15/task, $2/session, $10/day + TUI warnings | Paperclip parity | ⬜ |
-| **I-01** | Google AI + Ollama + **OpenRouter** (OpenRouter = 100+ modelos em 1 adapter) | Substitui H-03; unlock offline + rate-limit diversification | ⬜ |
+| **C-03** | Budget hard-stop $0.15/task, $2/session, $10/day + TUI warnings | Paperclip parity | ✅ (2026-04-14, `BudgetEnforcer` wired into `runConsensus` + fallback bridge execution + `/consensus` CLI/daemon + Ink live budget summary/warnings, +4 tests) |
+| **I-01** | Google AI + Ollama + **OpenRouter** (OpenRouter = 100+ modelos em 1 adapter) | Substitui H-03; unlock offline + rate-limit diversification | ✅ (2026-04-14, `makeOpenRouterAdapter` + `registerBuiltins()` auth/env wiring, +2 tests) |
 | **D-02** | 10 slash commands wired: `/help /tdd /code-review /plan /doctor /init /checkpoint /rewind /tasks /clear` | Hoje só 4 em builtins.ts, **nenhum wired ao CLI** | ⬜ |
 | **P-03** | Queue `nack` re-XADD (fix cosmetic backoff; poison msg stalls consumer hoje) | +40% throughput em carga com 1% poison | ⬜ |
 | **P-04** | Bridge output cache keyed by `hash(prompt+cli+cwd.git.HEAD)` | ~15% hit em re-runs; p50 3.2s → 50ms on hit | ⬜ |
