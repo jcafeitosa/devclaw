@@ -10,6 +10,7 @@
     "./cognitive": "./src/cognitive/index.ts",
     "./context": "./src/context/index.ts",
     "./discovery": "./src/discovery/index.ts",
+    "./hook": "./src/hook/index.ts",
     "./memory": "./src/memory/index.ts",
     "./oauth": "./src/oauth/index.ts",
     "./prompt": "./src/prompt/index.ts",
