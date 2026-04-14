@@ -143,7 +143,9 @@ describe("ToolExecutor", () => {
   })
 
   test("delegates permission + safety to kernel when configured", async () => {
-    registry.register(makeTool("echo", "low", async (input) => ({ echoed: (input as { x: string }).x })))
+    registry.register(
+      makeTool("echo", "low", async (input) => ({ echoed: (input as { x: string }).x })),
+    )
     const kernel = new SafetyKernel({
       permission: new PermissionEvaluator({
         rules: [{ tool: "echo", action: "tool.invoke", decision: "deny", reason: "kernel" }],

@@ -46,7 +46,9 @@ export class ACPSessionStore {
 
   async list(): Promise<ACPSessionInfo[]> {
     if (!this.sqlite) return [...this.sessions.values()].map((session) => ({ ...session }))
-    const rows = this.sqlite.query("SELECT payload FROM acp_sessions").all() as Array<{ payload: string }>
+    const rows = this.sqlite.query("SELECT payload FROM acp_sessions").all() as Array<{
+      payload: string
+    }>
     this.sessions.clear()
     const out = rows.map((row) => JSON.parse(row.payload) as ACPSessionInfo)
     for (const session of out) this.sessions.set(session.id, session)
@@ -60,9 +62,9 @@ export class ACPSessionStore {
 
   private read(id: string): ACPSessionInfo | null {
     if (!this.sqlite) return null
-    const row = this.sqlite.query("SELECT payload FROM acp_sessions WHERE id = ?").get(id) as
-      | { payload: string }
-      | null
+    const row = this.sqlite.query("SELECT payload FROM acp_sessions WHERE id = ?").get(id) as {
+      payload: string
+    } | null
     if (!row) return null
     const info = JSON.parse(row.payload) as ACPSessionInfo
     this.sessions.set(info.id, info)

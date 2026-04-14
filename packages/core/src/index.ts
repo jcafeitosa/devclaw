@@ -9,7 +9,19 @@ export * from "./comm/index.ts"
 export * from "./consensus/index.ts"
 export * from "./context/index.ts"
 export * from "./correction/index.ts"
-export * from "./cost/index.ts"
+export * from "./cost/ratecard.ts"
+export * from "./cost/router.ts"
+export * from "./cost/tracker.ts"
+export {
+  DEFAULT_BUDGET_LIMITS,
+  type BudgetEnforcerConfig,
+  BudgetEnforcer,
+  type BudgetLimits,
+  type BudgetRecordInput,
+  type BudgetUsage,
+  type BudgetWarning,
+  makeDefaultBudgetEnforcer,
+} from "./cost/budget.ts"
 export * from "./discovery/index.ts"
 export * from "./governance/index.ts"
 export * from "./hook/index.ts"

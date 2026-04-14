@@ -13,11 +13,12 @@ import {
   type ConsensusResult,
   runConsensus,
 } from "../../src/consensus/index.ts"
+import { BudgetEnforcer, BudgetExceededError } from "../../src/cost/budget.ts"
 
 function bridgeStub(
   cli: CliId,
   events: BridgeEvent[],
-  opts: { available?: boolean; authed?: boolean; throws?: boolean } = {},
+  opts: { available?: boolean; authed?: boolean; throws?: boolean; costUsd?: number } = {},
 ): Bridge {
   return {
     cli,
@@ -41,11 +42,17 @@ function bridgeStub(
       }
     },
     estimateCost() {
-      return { costUsd: 0, tokensIn: 10, tokensOut: 10, subscriptionCovered: true }
+      return {
+        costUsd: opts.costUsd ?? 0,
+        tokensIn: 10,
+        tokensOut: 10,
+        subscriptionCovered: true,
+      }
     },
     execute(): AsyncIterable<BridgeEvent> {
       if (opts.throws) {
-        return (async function* () {
+        // biome-ignore lint/correctness/useYield: intentionally-throwing stub
+        return (async function* (): AsyncGenerator<BridgeEvent> {
           throw new Error(`${cli}:kaboom`)
         })()
       }
@@ -124,10 +131,7 @@ describe("runConsensus — happy path", () => {
       bridgeStub("codex", [{ type: "text", content: "same" }, { type: "completed" }]),
     )
 
-    const result = await runConsensus(
-      { bridges: registry, scorer: async () => 0.5 },
-      req,
-    )
+    const result = await runConsensus({ bridges: registry, scorer: async () => 0.5 }, req)
     expect(result.winner).toBe("claude")
   })
 })
@@ -174,10 +178,7 @@ describe("runConsensus — unavailable + failed", () => {
       }),
     )
 
-    const result = await runConsensus(
-      { bridges: registry, scorer: async () => 1 },
-      req,
-    )
+    const result = await runConsensus({ bridges: registry, scorer: async () => 1 }, req)
     expect(result.participants.map((p) => p.cli)).toEqual(["claude"])
     expect(result.winner).toBe("claude")
   })
@@ -187,9 +188,7 @@ describe("runConsensus — unavailable + failed", () => {
     registry.register(
       bridgeStub("claude", [{ type: "text", content: "fine" }, { type: "completed" }]),
     )
-    registry.register(
-      bridgeStub("codex", [], { throws: true }),
-    )
+    registry.register(bridgeStub("codex", [], { throws: true }))
 
     const result: ConsensusResult = await runConsensus(
       { bridges: registry, scorer: async (_cli, text) => text.length || 0 },
@@ -203,12 +202,28 @@ describe("runConsensus — unavailable + failed", () => {
 
   test("throws ConsensusNoBridgesError when nothing eligible", async () => {
     const registry = new BridgeRegistry()
-    registry.register(
-      bridgeStub("claude", [], { available: false }),
-    )
+    registry.register(bridgeStub("claude", [], { available: false }))
     await expect(
       runConsensus({ bridges: registry, scorer: async () => 1 }, req),
     ).rejects.toBeInstanceOf(ConsensusNoBridgesError)
+  })
+
+  test("budget hard-stop rejects when planned task cost exceeds limit", async () => {
+    const registry = new BridgeRegistry()
+    registry.register(
+      bridgeStub("claude", [{ type: "text", content: "a" }, { type: "completed" }], {
+        costUsd: 0.1,
+      }),
+    )
+    registry.register(
+      bridgeStub("codex", [{ type: "text", content: "b" }, { type: "completed" }], {
+        costUsd: 0.1,
+      }),
+    )
+    const budget = new BudgetEnforcer({ limits: { taskUsd: 0.15, sessionUsd: 2, dayUsd: 10 } })
+    await expect(
+      runConsensus({ bridges: registry, scorer: async () => 1, budget }, req),
+    ).rejects.toBeInstanceOf(BudgetExceededError)
   })
 })
 
@@ -241,16 +256,10 @@ describe("runConsensus — observer callbacks", () => {
   test("emits bridge lifecycle and scores", async () => {
     const registry = new BridgeRegistry()
     registry.register(
-      bridgeStub("claude", [
-        { type: "text", content: "claude output" },
-        { type: "completed" },
-      ]),
+      bridgeStub("claude", [{ type: "text", content: "claude output" }, { type: "completed" }]),
     )
     registry.register(
-      bridgeStub("codex", [
-        { type: "text", content: "codex output" },
-        { type: "completed" },
-      ]),
+      bridgeStub("codex", [{ type: "text", content: "codex output" }, { type: "completed" }]),
     )
 
     const started: string[] = []
@@ -283,10 +292,12 @@ describe("runConsensus — observer callbacks", () => {
     expect(started.sort()).toEqual(["claude", "codex"])
     expect(completed.sort()).toEqual(["claude", "codex"])
     expect(scored.sort()).toEqual(["claude", "codex"])
-    expect(events.filter((e) => e.type === "text").map((e) => e.cli).sort()).toEqual([
-      "claude",
-      "codex",
-    ])
+    expect(
+      events
+        .filter((e) => e.type === "text")
+        .map((e) => e.cli)
+        .sort(),
+    ).toEqual(["claude", "codex"])
     expect(result.winner).toBe("claude")
   })
 })

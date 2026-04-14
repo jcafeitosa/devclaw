@@ -4,14 +4,14 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { type AuthStore, FilesystemAuthStore } from "@devclaw/core/auth"
-import { BridgeRegistry, FallbackStrategy } from "@devclaw/core/bridge"
 import type { Bridge, BridgeEvent, Capabilities, CliId } from "@devclaw/core/bridge"
+import { BridgeRegistry, FallbackStrategy } from "@devclaw/core/bridge"
 import { ProviderCatalog } from "@devclaw/core/provider"
 
 import { defaultLengthScorer, makeConsensusCommand } from "../src/commands/consensus.ts"
 import { run } from "../src/index.ts"
 
-function stubBridge(cli: CliId, text: string): Bridge {
+function stubBridge(cli: CliId, text: string, costUsd = 0): Bridge {
   return {
     cli,
     async isAvailable() {
@@ -34,7 +34,7 @@ function stubBridge(cli: CliId, text: string): Bridge {
       }
     },
     estimateCost() {
-      return { costUsd: 0, tokensIn: 0, tokensOut: 0, subscriptionCovered: true }
+      return { costUsd, tokensIn: 0, tokensOut: 0, subscriptionCovered: true }
     },
     execute(): AsyncIterable<BridgeEvent> {
       return (async function* () {
@@ -46,12 +46,16 @@ function stubBridge(cli: CliId, text: string): Bridge {
   }
 }
 
-async function consensusRuntime(dir: string, bridgeMap: Record<string, string>) {
+async function consensusRuntime(
+  dir: string,
+  bridgeMap: Record<string, string>,
+  costs: Record<string, number> = {},
+) {
   const authStore: AuthStore = new FilesystemAuthStore({ dir, passphrase: "pw" })
   const catalog = new ProviderCatalog()
   const bridges = new BridgeRegistry()
   for (const [cli, text] of Object.entries(bridgeMap)) {
-    bridges.register(stubBridge(cli as CliId, text))
+    bridges.register(stubBridge(cli as CliId, text, costs[cli] ?? 0))
   }
   const fallback = new FallbackStrategy({ registry: bridges, catalog })
   return { authStore, catalog, bridges, fallback, rootDir: dir, home: dir }
@@ -158,6 +162,7 @@ describe("CLI consensus command", () => {
     type LiveProps = {
       prompt: string
       taskId: string
+      sessionId?: string
       clis?: string[]
       scorer: typeof defaultLengthScorer
     }
@@ -194,5 +199,24 @@ describe("CLI consensus command", () => {
     expect(liveProps.taskId.startsWith("task_")).toBe(true)
     expect(liveProps.clis).toEqual(["claude", "codex"])
     expect(liveProps.scorer).toBe(defaultLengthScorer)
+  })
+
+  test("hard-stop budget rejects oversized consensus fan-out", async () => {
+    const code = await run({
+      argv: ["consensus", "--prompt", "budget check"],
+      stdout: push(out),
+      stderr: push(err),
+      runtime: () =>
+        consensusRuntime(
+          dir,
+          {
+            claude: "short reply",
+            codex: "long enough",
+          },
+          { claude: 0.1, codex: 0.1 },
+        ),
+    })
+    expect(code).toBe(1)
+    expect(err.join("\n").toLowerCase()).toContain("budget exceeded")
   })
 })

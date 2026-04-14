@@ -63,13 +63,14 @@ function toolOp(
     inputText: overrides.inputText ?? "hello",
     input: overrides.input ?? {},
     target: overrides.target,
-    execute: overrides.execute ??
-      (async function* () {
+    execute:
+      overrides.execute ??
+      async function* () {
         for (const ev of events) {
           if (overrides.throwOn === ev.type) throw new Error(`boom:${ev.type}`)
           yield ev
         }
-      }),
+      },
   }
 }
 
@@ -199,9 +200,7 @@ describe("SafetyKernel.invoke — safety", () => {
     const { kernel, audit } = makeKernel({ outputFlags: [leak] })
     let caught: unknown = null
     try {
-      await collect(
-        kernel.invoke(ctx, toolOp({ events: [{ type: "text", content: "sk-..." }] })),
-      )
+      await collect(kernel.invoke(ctx, toolOp({ events: [{ type: "text", content: "sk-..." }] })))
     } catch (err) {
       caught = err
     }

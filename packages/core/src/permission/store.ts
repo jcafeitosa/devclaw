@@ -151,9 +151,9 @@ export class PermissionRuleStore {
 
   private read(id: string): PersistedPermissionRule | null {
     if (!this.sqlite) return null
-    const row = this.sqlite.query("SELECT * FROM permission_rules WHERE id = ?").get(id) as
-      | RawRuleRow
-      | null
+    const row = this.sqlite
+      .query("SELECT * FROM permission_rules WHERE id = ?")
+      .get(id) as RawRuleRow | null
     if (!row) return null
     const rule = parseRow(row)
     this.rules.set(rule.id, rule)

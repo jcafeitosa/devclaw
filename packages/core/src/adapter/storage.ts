@@ -44,8 +44,9 @@ function parseCreate(sql: string): { table: string; columns: string[] } | null {
 }
 
 function parseInsert(sql: string): { table: string; columns: string[]; replace: boolean } | null {
-  const match =
-    /^INSERT( OR REPLACE)? INTO ([a-zA-Z_][\w]*) \((.+)\) VALUES \((.+)\)$/i.exec(norm(sql))
+  const match = /^INSERT( OR REPLACE)? INTO ([a-zA-Z_][\w]*) \((.+)\) VALUES \((.+)\)$/i.exec(
+    norm(sql),
+  )
   if (!match) return null
   const replace = match[1]
   const table = match[2]
@@ -55,7 +56,9 @@ function parseInsert(sql: string): { table: string; columns: string[]; replace: 
   return { table, columns, replace: Boolean(replace) }
 }
 
-function parseSelect(sql: string): { table: string; columns: string[] | "*"; where?: string[] } | null {
+function parseSelect(
+  sql: string,
+): { table: string; columns: string[] | "*"; where?: string[] } | null {
   const match = /^SELECT (.+) FROM ([a-zA-Z_][\w]*)(?: WHERE (.+))?$/i.exec(norm(sql))
   if (!match) return null
   const rawCols = match[1]
@@ -63,9 +66,7 @@ function parseSelect(sql: string): { table: string; columns: string[] | "*"; whe
   const rawWhere = match[3]
   if (!rawCols || !table) return null
   const columns =
-    rawCols.trim() === "*"
-      ? "*"
-      : rawCols.split(",").map((col) => col.trim().replace(/^"|"$/g, ""))
+    rawCols.trim() === "*" ? "*" : rawCols.split(",").map((col) => col.trim().replace(/^"|"$/g, ""))
   const where = rawWhere?.split(/\s+AND\s+/i).map((part) => {
     const clause = /^"?([a-zA-Z_][\w]*)"? = \?$/.exec(part.trim())
     if (!clause) throw new Error(`memory storage does not support WHERE clause: ${part}`)
@@ -120,7 +121,12 @@ function cloneState(state: StorageState): StorageState {
   )
 }
 
-function matchesWhere(row: Row, cols: string[] | undefined, params: unknown[], offset = 0): boolean {
+function matchesWhere(
+  row: Row,
+  cols: string[] | undefined,
+  params: unknown[],
+  offset = 0,
+): boolean {
   if (!cols || cols.length === 0) return true
   return cols.every((col, idx) => row[col] === params[offset + idx])
 }

@@ -65,7 +65,9 @@ export class ACPPermissionRequestStore {
             "SELECT payload FROM acp_pending_permissions WHERE session_id = ? ORDER BY request_id ASC",
           )
           .all(query.sessionId) as Array<{ payload: string }>)
-      : (this.sqlite.query("SELECT payload FROM acp_pending_permissions ORDER BY request_id ASC").all() as Array<{
+      : (this.sqlite
+          .query("SELECT payload FROM acp_pending_permissions ORDER BY request_id ASC")
+          .all() as Array<{
           payload: string
         }>)
     this.items.clear()

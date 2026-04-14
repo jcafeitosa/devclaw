@@ -158,9 +158,10 @@ export class ToolExecutor {
           inputText: stringifyForKernel(input),
           input: isRecord(input) ? input : {},
           target: id,
-          execute: () => this.executeTool(tool, input, ctx, controller, timeoutMs, (value) => {
-            output = value
-          }),
+          execute: () =>
+            this.executeTool(tool, input, ctx, controller, timeoutMs, (value) => {
+              output = value
+            }),
         },
       )) {
         // Kernel exists for permission/safety/audit gating; ToolExecutor only returns final result.

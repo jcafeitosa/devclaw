@@ -1,7 +1,7 @@
 import type { BridgeRegistry } from "../bridge/registry.ts"
 import type { Bridge, BridgeEvent, BridgeRequest, CliId } from "../bridge/types.ts"
-import type { BudgetEnforcer } from "../cost/budget.ts"
 import type { Step, StepState } from "../cognitive/types.ts"
+import type { BudgetEnforcer } from "../cost/budget.ts"
 import type { ProviderCatalog } from "../provider/catalog.ts"
 import { RubricEvaluator } from "../reflection/evaluator.ts"
 
@@ -27,9 +27,11 @@ export interface ConsensusResult {
   durationMs: number
 }
 
-export interface ConsensusScorer {
-  (cli: CliId, text: string, participant: ConsensusParticipant): Promise<number>
-}
+export type ConsensusScorer = (
+  cli: CliId,
+  text: string,
+  participant: ConsensusParticipant,
+) => Promise<number>
 
 export interface ConsensusObserver {
   onParticipantStart?(cli: CliId): void
@@ -152,7 +154,9 @@ export async function runConsensus(
 
   const scores: ConsensusScore[] = await Promise.all(
     participants.map(async (p) => {
-      const score = p.error ? { cli: p.cli, score: 0, feedback: p.error.message } : { cli: p.cli, score: await cfg.scorer(p.cli, p.text, p) }
+      const score = p.error
+        ? { cli: p.cli, score: 0, feedback: p.error.message }
+        : { cli: p.cli, score: await cfg.scorer(p.cli, p.text, p) }
       cfg.observer?.onScore?.(score)
       return score
     }),

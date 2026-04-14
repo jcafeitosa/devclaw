@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
-import { mkdtemp, readFile, rm, writeFile, chmod } from "node:fs/promises"
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-
+import { type BridgeLockEntry, loadBridgesLock, pinBridges } from "../src/commands/doctor.ts"
 import { run } from "../src/index.ts"
-import { loadBridgesLock, pinBridges, type BridgeLockEntry } from "../src/commands/doctor.ts"
 
 async function makeFakeBinary(dir: string, name: string, body: string): Promise<string> {
   const path = join(dir, name)

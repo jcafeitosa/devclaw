@@ -23,7 +23,10 @@ describe("MemoryStorage", () => {
     const store = new MemoryStorage()
     await store.execute("CREATE TABLE IF NOT EXISTS work_items (id TEXT, title TEXT)")
     await store.execute("INSERT INTO work_items (id, title) VALUES (?, ?)", ["w1", "Ship A-01"])
-    await store.execute("INSERT OR REPLACE INTO work_items (id, title) VALUES (?, ?)", ["w1", "Ship ADR-020"])
+    await store.execute("INSERT OR REPLACE INTO work_items (id, title) VALUES (?, ?)", [
+      "w1",
+      "Ship ADR-020",
+    ])
 
     const rows = await store.query<{ id: string; title: string }>(
       "SELECT id, title FROM work_items WHERE id = ?",
@@ -69,8 +72,12 @@ describe("MemoryVectorAdapter", () => {
 
   test("refreshes indexes when the same id is upserted again", async () => {
     const vector = new MemoryVectorAdapter()
-    await vector.upsert([{ id: "a", vector: new Float32Array([1, 0]), metadata: { kind: "db", tags: ["core"] } }])
-    await vector.upsert([{ id: "a", vector: new Float32Array([0, 1]), metadata: { kind: "ui", tags: ["docs"] } }])
+    await vector.upsert([
+      { id: "a", vector: new Float32Array([1, 0]), metadata: { kind: "db", tags: ["core"] } },
+    ])
+    await vector.upsert([
+      { id: "a", vector: new Float32Array([0, 1]), metadata: { kind: "ui", tags: ["docs"] } },
+    ])
 
     const oldHits = await vector.query(new Float32Array([1, 0]), {
       topK: 1,
@@ -124,8 +131,12 @@ describe("SqliteVectorAdapter", () => {
     const sqlitePath = join(dir, "vectors.db")
 
     const vector = new SqliteVectorAdapter({ sqlitePath })
-    await vector.upsert([{ id: "a", vector: new Float32Array([1, 0]), metadata: { kind: "db", tags: ["core"] } }])
-    await vector.upsert([{ id: "a", vector: new Float32Array([0, 1]), metadata: { kind: "ui", tags: ["docs"] } }])
+    await vector.upsert([
+      { id: "a", vector: new Float32Array([1, 0]), metadata: { kind: "db", tags: ["core"] } },
+    ])
+    await vector.upsert([
+      { id: "a", vector: new Float32Array([0, 1]), metadata: { kind: "ui", tags: ["docs"] } },
+    ])
 
     const oldHits = await vector.query(new Float32Array([1, 0]), {
       topK: 1,

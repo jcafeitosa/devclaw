@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test"
 import { MemoryAuditSink } from "../../src/audit/sink.ts"
 import { SafetyKernel } from "../../src/kernel/index.ts"
 import { PermissionEvaluator } from "../../src/permission/evaluator.ts"
-import { createDefaultModerator } from "../../src/safety/moderator.ts"
 import { ProviderCatalog, type ProviderDescriptor } from "../../src/provider/catalog.ts"
+import { createDefaultModerator } from "../../src/safety/moderator.ts"
 
 const dummy: ProviderDescriptor = {
   id: "dummy",
@@ -43,7 +43,9 @@ describe("ProviderCatalog", () => {
     const c = new ProviderCatalog({
       kernel: new SafetyKernel({
         permission: new PermissionEvaluator({
-          rules: [{ tool: "dummy", action: "provider.generate", decision: "deny", reason: "blocked" }],
+          rules: [
+            { tool: "dummy", action: "provider.generate", decision: "deny", reason: "blocked" },
+          ],
           defaultDecision: "allow",
         }),
         safety: createDefaultModerator(),

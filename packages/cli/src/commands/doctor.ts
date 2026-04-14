@@ -164,15 +164,18 @@ export function makeDoctorCommand(): CommandDef {
     describe: "Check CLI bridge binaries against ~/.devclaw/bridges.lock (SHA256 pin)",
     usage: "devclaw doctor [--pin] [--json] [--home <dir>] [--path <bin-dir>]",
     flags: [
-      { name: "pin", describe: "Write bridges.lock with current binaries + SHA256", type: "boolean" },
+      {
+        name: "pin",
+        describe: "Write bridges.lock with current binaries + SHA256",
+        type: "boolean",
+      },
       { name: "json", describe: "Emit machine-readable JSON", type: "boolean" },
       { name: "home", describe: "Override ~/.devclaw (default: $HOME/.devclaw)" },
       { name: "path", describe: "Resolve bridges from this directory instead of PATH" },
     ],
     async handler({ args, stdout, stderr }) {
       const home =
-        (typeof args.flags.home === "string" && args.flags.home) ||
-        join(homedir(), ".devclaw")
+        (typeof args.flags.home === "string" && args.flags.home) || join(homedir(), ".devclaw")
       const pathOverride = typeof args.flags.path === "string" ? args.flags.path : undefined
       const whicher = applyPath(pathOverride)
       const pinOpts: PinOptions = {

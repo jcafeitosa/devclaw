@@ -2,9 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-
-import { ACPServer } from "../../src/protocol/acp_server.ts"
 import { ACPPermissionRequestStore } from "../../src/protocol/acp_permission_store.ts"
+import { ACPServer } from "../../src/protocol/acp_server.ts"
 import { ACPSessionStore } from "../../src/protocol/acp_session_store.ts"
 import { makeRequest } from "../../src/protocol/jsonrpc.ts"
 

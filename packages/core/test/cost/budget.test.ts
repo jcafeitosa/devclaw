@@ -1,15 +1,11 @@
 import { describe, expect, test } from "bun:test"
 
-import {
-  BudgetEnforcer,
-  BudgetExceededError,
-  type BudgetWarning,
-} from "../../src/cost/budget.ts"
-import { CostTracker } from "../../src/cost/tracker.ts"
+import { BudgetEnforcer, BudgetExceededError, type BudgetWarning } from "../../src/cost/budget.ts"
 import { RateCardRegistry } from "../../src/cost/ratecard.ts"
+import { CostTracker } from "../../src/cost/tracker.ts"
 
 function now(): () => number {
-  let t = 1_700_000_000_000
+  const t = 1_700_000_000_000
   return () => t
 }
 

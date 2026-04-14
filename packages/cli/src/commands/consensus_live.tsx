@@ -1,6 +1,3 @@
-import { useEffect, useState } from "react"
-import { Box, Text, render, useApp } from "ink"
-
 import type { CliId } from "@devclaw/core/bridge"
 import {
   type ConsensusObserver,
@@ -8,6 +5,9 @@ import {
   type ConsensusScorer,
   runConsensus,
 } from "@devclaw/core/consensus"
+import { type BudgetEnforcer, makeDefaultBudgetEnforcer } from "@devclaw/core/cost"
+import { Box, render, Text, useApp } from "ink"
+import { useEffect, useState } from "react"
 
 import type { Runtime } from "../runtime.ts"
 
@@ -39,6 +39,7 @@ export interface ConsensusLiveAppProps {
   runtime: Runtime
   prompt: string
   taskId: string
+  sessionId?: string
   scorer: ConsensusScorer
   clis?: CliId[]
   cwd?: string
@@ -117,16 +118,59 @@ function formatElapsed(ms: number): string {
   return `${seconds}s`
 }
 
-export function ConsensusLiveView({ snapshot }: { snapshot: ConsensusLiveSnapshot }) {
+function budgetRow(label: string, used: number, limit: number): string {
+  return `  ${label}: $${used.toFixed(2)} / $${limit.toFixed(2)}`
+}
+
+export function ConsensusLiveView({
+  snapshot,
+  budget,
+}: {
+  snapshot: ConsensusLiveSnapshot
+  budget?: BudgetEnforcer
+}) {
   const elapsedMs = snapshot.durationMs ?? Math.max(0, Date.now() - snapshot.startedAt)
+  const usage = budget?.usage()
+  const limits = budget?.limitsSnapshot()
   return (
     <Box flexDirection="column">
       <Text>devclaw consensus</Text>
       <Text>{`task: ${snapshot.taskId}`}</Text>
       <Text>{`prompt: ${snapshot.prompt}`}</Text>
       <Text>{`phase: ${snapshot.phase}  elapsed: ${formatElapsed(elapsedMs)}`}</Text>
+      {budget && usage && limits ? (
+        <Box flexDirection="column">
+          <Text>budget:</Text>
+          <Text>{budgetRow("task", usage.taskUsd[snapshot.taskId] ?? 0, limits.taskUsd ?? 0)}</Text>
+          <Text>
+            {budgetRow("session", Object.values(usage.sessionUsd)[0] ?? 0, limits.sessionUsd ?? 0)}
+          </Text>
+          <Text>{budgetRow("day", usage.dayUsd, limits.dayUsd ?? 0)}</Text>
+          {(
+            [
+              { label: "task", used: usage.taskUsd[snapshot.taskId] ?? 0, limit: limits.taskUsd },
+              {
+                label: "session",
+                used: Object.values(usage.sessionUsd)[0] ?? 0,
+                limit: limits.sessionUsd,
+              },
+              { label: "day", used: usage.dayUsd, limit: limits.dayUsd },
+            ] as const
+          )
+            .filter((row) => row.limit !== undefined)
+            .map((row) => {
+              const util = row.limit ? row.used / row.limit : 0
+              if (util < 0.8) return null
+              return (
+                <Text key={row.label}>{`  warning: ${row.label} budget ${Math.round(
+                  util * 100,
+                )}% used`}</Text>
+              )
+            })}
+        </Box>
+      ) : null}
       <Text>participants:</Text>
-      {snapshot.order.length === 0 ? <Text>  (waiting for bridges)</Text> : null}
+      {snapshot.order.length === 0 ? <Text> (waiting for bridges)</Text> : null}
       {snapshot.order.map((cli) => {
         const participant = snapshot.participants[cli]
         if (!participant) return null
@@ -150,11 +194,14 @@ function ConsensusLiveApp({
   runtime,
   prompt,
   taskId,
+  sessionId,
   scorer,
   clis,
   cwd = process.cwd(),
 }: ConsensusLiveAppProps) {
   const { exit } = useApp() as { exit: (value?: number) => void }
+  const [budget] = useState(() => runtime.budget ?? makeDefaultBudgetEnforcer())
+  const currentSessionId = sessionId ?? taskId
   const [snapshot, setSnapshot] = useState<ConsensusLiveSnapshot>(() => ({
     prompt,
     taskId,
@@ -226,10 +273,12 @@ function ConsensusLiveApp({
             bridges: runtime.bridges,
             scorer,
             clis,
+            budget,
             observer,
           },
           {
             taskId,
+            sessionId: currentSessionId,
             agentId: "cli",
             cli: "claude",
             cwd,
@@ -260,7 +309,7 @@ function ConsensusLiveApp({
     return () => {
       cancelled = true
     }
-  }, [clis, cwd, prompt, runtime.bridges, scorer, taskId])
+  }, [budget, clis, cwd, currentSessionId, prompt, runtime.bridges, scorer, taskId])
 
   useEffect(() => {
     if (exitCode === null) return
@@ -268,7 +317,7 @@ function ConsensusLiveApp({
     return () => clearTimeout(timer)
   }, [exit, exitCode])
 
-  return <ConsensusLiveView snapshot={snapshot} />
+  return <ConsensusLiveView snapshot={snapshot} budget={budget} />
 }
 
 export async function renderConsensusLive(props: ConsensusLiveAppProps): Promise<number> {

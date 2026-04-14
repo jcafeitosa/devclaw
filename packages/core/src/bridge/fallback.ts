@@ -1,5 +1,5 @@
-import type { SafetyKernel } from "../kernel/index.ts"
 import type { BudgetEnforcer } from "../cost/budget.ts"
+import type { SafetyKernel } from "../kernel/index.ts"
 import type { ProviderCatalog } from "../provider/catalog.ts"
 import { createDefaultModerator } from "../safety/moderator.ts"
 import type { Moderator } from "../safety/types.ts"
@@ -39,7 +39,8 @@ export class FallbackStrategy {
                 inputText: req.prompt,
                 input: { cli: req.cli, cwd: req.cwd, model: req.model },
                 target: req.cwd,
-                execute: () => bridge.execute(req) as AsyncIterable<import("../kernel/index.ts").KernelEvent>,
+                execute: () =>
+                  bridge.execute(req) as AsyncIterable<import("../kernel/index.ts").KernelEvent>,
               },
             )) {
               yield event as BridgeEvent

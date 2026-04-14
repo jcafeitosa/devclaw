@@ -9,13 +9,13 @@ import {
   makeCodexBridge,
   makeGeminiBridge,
 } from "@devclaw/core/bridge"
+import { type BudgetEnforcer, makeDefaultBudgetEnforcer } from "@devclaw/core/cost"
 import {
   makeAnthropicAdapter,
   makeOpenAIAdapter,
   ProviderCatalog,
   registerBuiltins,
 } from "@devclaw/core/provider"
-import { makeDefaultBudgetEnforcer, type BudgetEnforcer } from "@devclaw/core/cost"
 
 export interface RuntimeConfig {
   home?: string

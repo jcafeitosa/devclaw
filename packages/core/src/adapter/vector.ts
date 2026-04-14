@@ -62,7 +62,10 @@ function matchValue(actual: unknown, expected: unknown): boolean {
   return actual === expected
 }
 
-function matchesFilter(metadata: Record<string, unknown> | undefined, filter?: VectorFilter): boolean {
+function matchesFilter(
+  metadata: Record<string, unknown> | undefined,
+  filter?: VectorFilter,
+): boolean {
   if (!filter) return true
   return Object.entries(filter).every(([key, value]) => matchValue(metadata?.[key], value))
 }
@@ -293,14 +296,15 @@ export class SqliteVectorAdapter implements VectorAdapter {
       this.sqlite
         ?.query("INSERT OR REPLACE INTO vector_records (id, vector, metadata) VALUES (?, ?, ?)")
         .run(item.id, serializeVector(entry.vector), JSON.stringify(entry.metadata ?? null))
-      this.sqlite?.query("INSERT OR REPLACE INTO vector_record_kinds (id, kind) VALUES (?, ?)").run(
-        item.id,
-        extractKind(entry.metadata),
-      )
+      this.sqlite
+        ?.query("INSERT OR REPLACE INTO vector_record_kinds (id, kind) VALUES (?, ?)")
+        .run(item.id, extractKind(entry.metadata))
       this.sqlite?.query("DELETE FROM vector_record_tags WHERE id = ?").run(item.id)
       const tags = extractTags(entry.metadata)
       if (tags.length > 0) {
-        const stmt = this.sqlite?.query("INSERT OR REPLACE INTO vector_record_tags (id, tag) VALUES (?, ?)")
+        const stmt = this.sqlite?.query(
+          "INSERT OR REPLACE INTO vector_record_tags (id, tag) VALUES (?, ?)",
+        )
         if (stmt) {
           for (const tag of tags) stmt.run(item.id, tag)
         }
@@ -339,7 +343,9 @@ export class SqliteVectorAdapter implements VectorAdapter {
 
   private hydrate(): void {
     if (!this.sqlite) return
-    const rows = this.sqlite.query("SELECT id, vector, metadata FROM vector_records").all() as Array<{
+    const rows = this.sqlite
+      .query("SELECT id, vector, metadata FROM vector_records")
+      .all() as Array<{
       id: string
       vector: unknown
       metadata: string | null
@@ -359,7 +365,9 @@ export class SqliteVectorAdapter implements VectorAdapter {
     const candidates: Array<Set<string>> = []
     const kind = filter.kind
     if (typeof kind === "string" && kind.length > 0) {
-      const rows = this.sqlite.query("SELECT id FROM vector_record_kinds WHERE kind = ?").all(kind) as Array<{
+      const rows = this.sqlite
+        .query("SELECT id FROM vector_record_kinds WHERE kind = ?")
+        .all(kind) as Array<{
         id: string
       }>
       candidates.push(new Set(rows.map((row) => row.id)))

@@ -1,14 +1,14 @@
 import type { CliId } from "@devclaw/core/bridge"
-import { makeDefaultBudgetEnforcer } from "@devclaw/core/cost"
 import {
   ConsensusNoBridgesError,
   type ConsensusScorer,
   runConsensus,
 } from "@devclaw/core/consensus"
+import { makeDefaultBudgetEnforcer } from "@devclaw/core/cost"
 
 import type { CommandDef } from "../registry.ts"
 import type { Runtime } from "../runtime.ts"
-import { renderConsensusLive, type ConsensusLiveAppProps } from "./consensus_live.tsx"
+import { type ConsensusLiveAppProps, renderConsensusLive } from "./consensus_live.tsx"
 
 const LENGTH_CEILING = 2000
 

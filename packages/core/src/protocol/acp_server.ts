@@ -1,5 +1,5 @@
 import { EventEmitter } from "../util/event_emitter.ts"
-import type { ACPPermissionRequestStore, ACPPendingPermission } from "./acp_permission_store.ts"
+import type { ACPPendingPermission, ACPPermissionRequestStore } from "./acp_permission_store.ts"
 import type { ACPSessionStore } from "./acp_session_store.ts"
 import type {
   ACPCapabilities,

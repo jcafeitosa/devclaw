@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import { MemoryAuditSink } from "../../src/audit/sink.ts"
 import { CognitiveEngine } from "../../src/cognitive/engine.ts"
 import { MaxStepsExceededError, StepFailedError } from "../../src/cognitive/errors.ts"
 import { StubPlanner } from "../../src/cognitive/planner.ts"
@@ -6,7 +7,6 @@ import { DefaultReasoner } from "../../src/cognitive/reasoner.ts"
 import { ModelRouter } from "../../src/cognitive/router.ts"
 import type { StepExecutor } from "../../src/cognitive/step_executor.ts"
 import type { Step, StepContext } from "../../src/cognitive/types.ts"
-import { MemoryAuditSink } from "../../src/audit/sink.ts"
 import { SafetyKernel } from "../../src/kernel/index.ts"
 import { HashEmbedder } from "../../src/memory/embedding.ts"
 import { InMemoryEpisodic } from "../../src/memory/episodic.ts"
@@ -14,8 +14,7 @@ import { InMemoryLongTerm } from "../../src/memory/long_term.ts"
 import { MemoryService } from "../../src/memory/service.ts"
 import { InMemoryShortTerm } from "../../src/memory/short_term.ts"
 import { PermissionEvaluator } from "../../src/permission/evaluator.ts"
-import { RegexPatternModerator } from "../../src/safety/moderator.ts"
-import { createDefaultModerator } from "../../src/safety/moderator.ts"
+import { createDefaultModerator, RegexPatternModerator } from "../../src/safety/moderator.ts"
 import type { Moderator } from "../../src/safety/types.ts"
 
 function memoryService() {
@@ -178,7 +177,9 @@ describe("CognitiveEngine", () => {
       memory,
       kernel: new SafetyKernel({
         permission: new PermissionEvaluator({
-          rules: [{ tool: "openai", action: "cognitive.step", decision: "deny", reason: "blocked" }],
+          rules: [
+            { tool: "openai", action: "cognitive.step", decision: "deny", reason: "blocked" },
+          ],
           defaultDecision: "allow",
         }),
         safety: createDefaultModerator(),

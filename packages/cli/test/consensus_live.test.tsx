@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import { renderToString } from "ink"
-import React from "react"
+import { BudgetEnforcer } from "@devclaw/core/cost"
 
-import { ConsensusLiveView, type ConsensusLiveSnapshot } from "../src/commands/consensus_live.tsx"
+import { type ConsensusLiveSnapshot, ConsensusLiveView } from "../src/commands/consensus_live.tsx"
 
 describe("ConsensusLiveView", () => {
   test("renders winner, scores, and participant snippets", () => {
@@ -41,5 +41,27 @@ describe("ConsensusLiveView", () => {
     expect(output).toContain("score=0.33")
     expect(output).toContain("winner: codex")
     expect(output).toContain("winner text:")
+  })
+
+  test("renders budget summary and warnings", () => {
+    const budget = new BudgetEnforcer({
+      limits: { taskUsd: 0.15, sessionUsd: 2, dayUsd: 10 },
+    })
+    budget.record({ taskId: "task_123", sessionId: "session_1", usd: 0.13, at: Date.now() })
+    const snapshot: ConsensusLiveSnapshot = {
+      prompt: "plan refactor",
+      taskId: "task_123",
+      startedAt: Date.now() - 1234,
+      phase: "running",
+      participants: {},
+      order: [],
+    }
+
+    const output = renderToString(<ConsensusLiveView snapshot={snapshot} budget={budget} />, {
+      columns: 80,
+    })
+    expect(output).toContain("budget:")
+    expect(output).toContain("task: $0.13 / $0.15")
+    expect(output).toContain("warning:")
   })
 })

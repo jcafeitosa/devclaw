@@ -130,13 +130,7 @@ export class BudgetEnforcer {
     if (this.limits.taskUsd !== undefined && ctx.taskId) {
       const current = this.taskUsd.get(ctx.taskId) ?? 0
       if (current + plannedUsd > this.limits.taskUsd + epsilon) {
-        throw new BudgetExceededError(
-          "task",
-          ctx.taskId,
-          this.limits.taskUsd,
-          current,
-          plannedUsd,
-        )
+        throw new BudgetExceededError("task", ctx.taskId, this.limits.taskUsd, current, plannedUsd)
       }
     }
     if (this.limits.sessionUsd !== undefined && ctx.sessionId) {
@@ -209,7 +203,9 @@ export class BudgetEnforcer {
   }
 }
 
-export function makeDefaultBudgetEnforcer(cfg: Omit<BudgetEnforcerConfig, "limits"> = {}): BudgetEnforcer {
+export function makeDefaultBudgetEnforcer(
+  cfg: Omit<BudgetEnforcerConfig, "limits"> = {},
+): BudgetEnforcer {
   return new BudgetEnforcer({
     limits: { ...DEFAULT_BUDGET_LIMITS },
     ...cfg,

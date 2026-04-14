@@ -31,13 +31,14 @@ describe("registerBuiltins", () => {
     await store.save("anthropic", { type: "api", key: "sk-a" })
     await store.save("openai", { type: "api", key: "sk-o" })
     await store.save("google", { type: "api", key: "sk-g" })
+    await store.save("openrouter", { type: "api", key: "sk-r" })
     const catalog = await registerBuiltins({ store })
     expect(
       catalog
         .list()
         .map((d) => d.id)
         .sort(),
-    ).toEqual(["anthropic", "google", "ollama", "openai"])
+    ).toEqual(["anthropic", "google", "ollama", "openai", "openrouter"])
   })
 
   test("skips providers stored as oauth (not api)", async () => {
@@ -61,5 +62,12 @@ describe("registerBuiltins", () => {
         .map((d) => d.id)
         .sort(),
     ).toEqual(["google", "ollama"])
+  })
+
+  test("accepts openrouter auth for openrouter provider", async () => {
+    const store = new FilesystemAuthStore({ dir, passphrase: "pw" })
+    await store.save("openrouter", { type: "api", key: "sk-router" })
+    const catalog = await registerBuiltins({ store })
+    expect(catalog.list().map((d) => d.id).sort()).toEqual(["ollama", "openrouter"])
   })
 })

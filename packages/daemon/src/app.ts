@@ -7,7 +7,7 @@ import {
   makeLLMJudgeScorer,
   runConsensus,
 } from "@devclaw/core/consensus"
-import { makeDefaultBudgetEnforcer, type BudgetEnforcer } from "@devclaw/core/cost"
+import { type BudgetEnforcer, makeDefaultBudgetEnforcer } from "@devclaw/core/cost"
 import { discover } from "@devclaw/core/discovery"
 import {
   ACPServer,

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test"
+import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -11,13 +11,17 @@ import {
   type CliId,
   FallbackStrategy,
 } from "@devclaw/core/bridge"
-import { ProviderCatalog, type GenerateOpts, type ProviderDescriptor } from "@devclaw/core/provider"
+import { type GenerateOpts, ProviderCatalog, type ProviderDescriptor } from "@devclaw/core/provider"
 
 import { createApp } from "../src/app.ts"
 
 const JWT_SECRET = "test-daemon-secret"
 
-function stubBridge(cli: CliId, text: string, opts: { available?: boolean } = {}): Bridge {
+function stubBridge(
+  cli: CliId,
+  text: string,
+  opts: { available?: boolean; costUsd?: number } = {},
+): Bridge {
   return {
     cli,
     async isAvailable() {
@@ -40,7 +44,12 @@ function stubBridge(cli: CliId, text: string, opts: { available?: boolean } = {}
       }
     },
     estimateCost() {
-      return { costUsd: 0, tokensIn: 0, tokensOut: 0, subscriptionCovered: true }
+      return {
+        costUsd: opts.costUsd ?? 0,
+        tokensIn: 0,
+        tokensOut: 0,
+        subscriptionCovered: true,
+      }
     },
     execute(): AsyncIterable<BridgeEvent> {
       return (async function* () {
@@ -52,9 +61,7 @@ function stubBridge(cli: CliId, text: string, opts: { available?: boolean } = {}
   }
 }
 
-function judgeProvider(
-  impl: (opts: GenerateOpts) => Promise<string>,
-): ProviderDescriptor {
+function judgeProvider(impl: (opts: GenerateOpts) => Promise<string>): ProviderDescriptor {
   return {
     id: "judge",
     name: "Judge",
@@ -66,14 +73,18 @@ function judgeProvider(
   }
 }
 
-async function setup(bridgeMap: Record<string, string>, providers: ProviderDescriptor[] = []) {
+async function setup(
+  bridgeMap: Record<string, string>,
+  providers: ProviderDescriptor[] = [],
+  costs: Record<string, number> = {},
+) {
   const dir = await mkdtemp(join(tmpdir(), "devclaw-daemon-consensus-"))
   const authStore = new FilesystemAuthStore({ dir, passphrase: "pw" })
   const catalog = new ProviderCatalog()
   for (const provider of providers) catalog.register(provider)
   const bridges = new BridgeRegistry()
   for (const [cli, text] of Object.entries(bridgeMap)) {
-    bridges.register(stubBridge(cli as CliId, text))
+    bridges.register(stubBridge(cli as CliId, text, { costUsd: costs[cli] ?? 0 }))
   }
   const fallback = new FallbackStrategy({ registry: bridges, catalog })
   const app = createApp({
@@ -83,11 +94,7 @@ async function setup(bridgeMap: Record<string, string>, providers: ProviderDescr
   return { app, dir }
 }
 
-async function post(
-  app: Awaited<ReturnType<typeof setup>>["app"],
-  path: string,
-  body: unknown,
-) {
+async function post(app: Awaited<ReturnType<typeof setup>>["app"], path: string, body: unknown) {
   return app.handle(
     new Request(`http://127.0.0.1${path}`, {
       method: "POST",
@@ -184,5 +191,20 @@ describe("daemon /consensus", () => {
     state = await setup({ claude: "x" })
     const res = await post(state.app, "/consensus", { prompt: "" })
     expect(res.status).toBe(422)
+  })
+
+  test("hard-stop budget rejects when planned consensus cost exceeds limit", async () => {
+    state = await setup(
+      {
+        claude: "short",
+        codex: "long",
+      },
+      [],
+      { claude: 0.1, codex: 0.1 },
+    )
+    const res = await post(state.app, "/consensus", { prompt: "budget guard" })
+    expect(res.status).toBe(500)
+    const body = await res.text()
+    expect(body.toLowerCase()).toContain("budget exceeded")
   })
 })

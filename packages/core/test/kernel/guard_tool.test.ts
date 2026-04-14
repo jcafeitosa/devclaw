@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test"
 
 import { MemoryAuditSink } from "../../src/audit/sink.ts"
 import {
+  guardedToolInvoke,
   type KernelContext,
   PermissionDeniedError,
   SafetyBlockedError,
   SafetyKernel,
-  guardedToolInvoke,
 } from "../../src/kernel/index.ts"
 import { PermissionEvaluator } from "../../src/permission/evaluator.ts"
 import type { PermissionRule } from "../../src/permission/types.ts"
@@ -169,9 +169,9 @@ describe("guardedToolInvoke — handler throws", () => {
       safety: new StubModerator(),
       audit,
     })
-    await expect(
-      guardedToolInvoke(kernel, executor, ctx, "echo", { text: "hi" }),
-    ).rejects.toThrow("handler oops")
+    await expect(guardedToolInvoke(kernel, executor, ctx, "echo", { text: "hi" })).rejects.toThrow(
+      "handler oops",
+    )
     expect(audit.list().map((e) => e.kind)).toEqual(["tool.fail"])
   })
 })

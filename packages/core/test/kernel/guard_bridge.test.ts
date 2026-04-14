@@ -3,11 +3,11 @@ import { describe, expect, test } from "bun:test"
 import { MemoryAuditSink } from "../../src/audit/sink.ts"
 import type { Bridge, BridgeEvent, BridgeRequest, Capabilities } from "../../src/bridge/types.ts"
 import {
+  guardedBridgeExecute,
   type KernelContext,
   PermissionDeniedError,
   SafetyBlockedError,
   SafetyKernel,
-  guardedBridgeExecute,
 } from "../../src/kernel/index.ts"
 import { PermissionEvaluator } from "../../src/permission/evaluator.ts"
 import type { PermissionRule } from "../../src/permission/types.ts"
@@ -183,10 +183,7 @@ describe("guardedBridgeExecute — output safety block", () => {
     expect((caught as SafetyBlockedError).mode).toBe("output")
     // events before the flagged chunk are allowed through
     expect(seen.map((e) => e.type)).toEqual(["started"])
-    expect(audit.list().map((e) => e.kind)).toEqual([
-      "safety.output_block",
-      "bridge.fail",
-    ])
+    expect(audit.list().map((e) => e.kind)).toEqual(["safety.output_block", "bridge.fail"])
   })
 })
 

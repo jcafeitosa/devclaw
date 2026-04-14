@@ -2,10 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { SqliteVectorAdapter } from "../../src/adapter/vector.ts"
 import { HashEmbedder } from "../../src/memory/embedding.ts"
 import { InMemoryLongTerm } from "../../src/memory/long_term.ts"
 import type { MemoryItem } from "../../src/memory/types.ts"
-import { SqliteVectorAdapter } from "../../src/adapter/vector.ts"
 
 const dirs: string[] = []
 

@@ -118,10 +118,7 @@ export class CognitiveEngine {
     return this.finalize(plan, states, episodes, "done", true)
   }
 
-  private async executeWithKernel(
-    task: Task,
-    ctx: StepContext,
-  ): Promise<{ output: unknown }> {
+  private async executeWithKernel(task: Task, ctx: StepContext): Promise<{ output: unknown }> {
     const self = this
     let output: unknown
     for await (const _event of this.cfg.kernel!.invoke(
@@ -145,11 +142,7 @@ export class CognitiveEngine {
           const result = await self.cfg.executor.execute(ctx)
           output = result.output
           const text =
-            typeof output === "string"
-              ? output
-              : output === undefined
-                ? ""
-                : JSON.stringify(output)
+            typeof output === "string" ? output : output === undefined ? "" : JSON.stringify(output)
           if (text) yield { type: "text" as const, content: text }
           yield { type: "completed" as const }
         },

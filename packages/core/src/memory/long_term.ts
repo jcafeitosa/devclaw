@@ -54,7 +54,14 @@ function hydrateItem(id: string, metadata?: Record<string, unknown>): MemoryItem
   const createdAt = typeof metadata.createdAt === "number" ? metadata.createdAt : null
   const lastUsedAt = typeof metadata.lastUsedAt === "number" ? metadata.lastUsedAt : null
   const useCount = typeof metadata.useCount === "number" ? metadata.useCount : null
-  if (!kind || !content || !tags || createdAt === null || lastUsedAt === null || useCount === null) {
+  if (
+    !kind ||
+    !content ||
+    !tags ||
+    createdAt === null ||
+    lastUsedAt === null ||
+    useCount === null
+  ) {
     return null
   }
   return {

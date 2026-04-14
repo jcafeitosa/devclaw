@@ -4,7 +4,6 @@ import type { CliId } from "../../src/bridge/types.ts"
 import { makeLLMJudgeScorer } from "../../src/consensus/index.ts"
 import {
   type GenerateOpts,
-  type GenerateResult,
   ProviderCatalog,
   type ProviderDescriptor,
 } from "../../src/provider/catalog.ts"
