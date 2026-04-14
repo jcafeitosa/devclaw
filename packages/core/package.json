@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./auth": "./src/auth/index.ts",
+    "./cognitive": "./src/cognitive/index.ts",
     "./context": "./src/context/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./memory": "./src/memory/index.ts",

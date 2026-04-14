@@ -1,0 +1,123 @@
+import type { MemoryService } from "../memory/service.ts"
+import { MaxStepsExceededError, StepFailedError } from "./errors.ts"
+import { PlanGraph } from "./plan_graph.ts"
+import type { Planner } from "./planner.ts"
+import type { Reasoner } from "./reasoner.ts"
+import type { ModelRouter } from "./router.ts"
+import type { StepExecutor } from "./step_executor.ts"
+import type { Plan, RunResult, StepContext, StepState, Task, Tier } from "./types.ts"
+
+export interface CognitiveEngineConfig {
+  planner: Planner
+  reasoner: Reasoner
+  router: ModelRouter
+  executor: StepExecutor
+  memory: MemoryService
+  maxSteps?: number
+  defaultTier?: Tier
+}
+
+function nextEpisodeId(): string {
+  return `ep_${Date.now()}_${Math.floor(Math.random() * 1e6)}`
+}
+
+export class CognitiveEngine {
+  constructor(private readonly cfg: CognitiveEngineConfig) {}
+
+  async run(task: Task): Promise<RunResult> {
+    const plan = await this.cfg.planner.plan(task)
+    const graph = new PlanGraph(plan.steps)
+    const states = new Map<string, StepState>()
+    for (const s of plan.steps) states.set(s.id, { id: s.id, status: "pending" })
+    const episodes: string[] = []
+    const deadline = task.deadlineMs ? Date.now() + task.deadlineMs : undefined
+    const maxSteps = task.maxSteps ?? this.cfg.maxSteps ?? 20
+    const defaultTier: Tier = this.cfg.defaultTier ?? "executor"
+    let iterations = 0
+
+    while (!graph.isDone()) {
+      if (iterations >= maxSteps) throw new MaxStepsExceededError(maxSteps)
+      if (deadline && Date.now() > deadline) {
+        return this.finalize(plan, states, episodes, "deadline", false)
+      }
+      const step = this.cfg.reasoner.pick(graph)
+      if (!step) {
+        return this.finalize(plan, states, episodes, "step_failed", false)
+      }
+      iterations++
+      const tier = step.tier ?? defaultTier
+      const route = this.cfg.router.choose(tier)
+      graph.start(step.id)
+      const state = states.get(step.id) ?? { id: step.id, status: "pending" }
+      state.status = "running"
+      state.startedAt = Date.now()
+      state.provider = route.providerId
+      state.model = route.model
+      states.set(step.id, state)
+
+      const priorStates: StepState[] = [...states.values()]
+      const ctx: StepContext = {
+        task,
+        plan,
+        step,
+        route,
+        priorStates,
+      }
+      const started = state.startedAt
+      try {
+        const { output } = await this.cfg.executor.execute(ctx)
+        state.status = "completed"
+        state.completedAt = Date.now()
+        state.output = output
+        graph.complete(step.id)
+        const epId = nextEpisodeId()
+        await this.cfg.memory.recordEpisode({
+          id: epId,
+          taskId: task.goal,
+          outcome: "success",
+          content: `step ${step.id}: ${step.description}`,
+          at: Date.now(),
+          durationMs: Date.now() - (started ?? Date.now()),
+          agentId: task.agentId,
+          sessionId: task.sessionId,
+        })
+        episodes.push(epId)
+      } catch (cause) {
+        state.status = "failed"
+        state.completedAt = Date.now()
+        state.error = cause instanceof Error ? cause.message : String(cause)
+        graph.fail(step.id)
+        const epId = nextEpisodeId()
+        await this.cfg.memory.recordEpisode({
+          id: epId,
+          taskId: task.goal,
+          outcome: "failure",
+          content: `step ${step.id} failed: ${state.error}`,
+          at: Date.now(),
+          durationMs: Date.now() - (started ?? Date.now()),
+          agentId: task.agentId,
+          sessionId: task.sessionId,
+        })
+        episodes.push(epId)
+        throw new StepFailedError(step.id, cause)
+      }
+    }
+    return this.finalize(plan, states, episodes, "done", true)
+  }
+
+  private finalize(
+    plan: Plan,
+    states: Map<string, StepState>,
+    episodes: string[],
+    reason: RunResult["reason"],
+    completed: boolean,
+  ): RunResult {
+    return {
+      plan,
+      states: plan.steps.map((s) => states.get(s.id) ?? { id: s.id, status: "pending" }),
+      episodes,
+      completed,
+      reason,
+    }
+  }
+}
