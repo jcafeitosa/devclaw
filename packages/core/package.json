@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./adapter": "./src/adapter/index.ts",
     "./audit": "./src/audit/index.ts",
     "./auth": "./src/auth/index.ts",
     "./bridge": "./src/bridge/index.ts",
@@ -16,6 +17,7 @@
     "./context": "./src/context/index.ts",
     "./correction": "./src/correction/index.ts",
     "./cost": "./src/cost/index.ts",
+    "./db": "./src/db/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./governance": "./src/governance/index.ts",
     "./hook": "./src/hook/index.ts",
@@ -44,6 +46,11 @@
   },
   "scripts": {
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate --config ./drizzle.config.dev.ts",
+    "db:migrate": "bun ./src/db/migrate.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.44.5"
   }
 }
