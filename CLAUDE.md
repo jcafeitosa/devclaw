@@ -121,30 +121,50 @@ Only where no native alternative exists:
 
 ### Control flow
 - **Avoid `else`** — early returns
-- **Avoid try/catch** — use Result pattern (see below)
 - **Avoid `any`** — use `unknown` + type guards
+- **Try-catch only at boundaries** — I/O, subprocess, JSON parse, external APIs
+- **Typed error classes** — every module has its own error hierarchy (see below)
 
 ### Error handling pattern
 
 ```typescript
-// Result type used throughout the project
-type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E }
+// Typed error classes — every module follows this pattern
+// See vault://10_observability/error_handling for full taxonomy (60+ error classes)
 
-function ok<T>(value: T): Result<T, never> { return { ok: true, value } }
-function err<E>(error: E): Result<never, E> { return { ok: false, error } }
+export type BridgeErrorCode = "NOT_AVAILABLE" | "TIMEOUT" | "EXEC_FAILED" | "PARSE"
 
-// Usage — no try/catch
-function parseConfig(raw: string): Result<Config, ParseError> {
-  const json = JSON.parse(raw) // let it throw if invalid — caller boundaries handle
-  if (!json.version) return err(new ParseError("missing version"))
-  return ok(json as Config)
+export class BridgeError extends Error {
+  readonly code: BridgeErrorCode
+  readonly recoverable: boolean
+  constructor(code: BridgeErrorCode, message: string, recoverable = false) {
+    super(message)
+    this.name = "BridgeError"
+    this.code = code
+    this.recoverable = recoverable
+  }
 }
 
-// Caller
-const result = parseConfig(text)
-if (!result.ok) return result // propagate error
-const cfg = result.value      // narrowed to Config
+// Try-catch at I/O boundaries — transform to typed error
+async function executeBridge(req: BridgeRequest): Promise<BridgeResponse> {
+  try {
+    const proc = Bun.spawn(["claude", "--prompt", req.prompt])
+    return parseOutput(await proc.stdout.text())
+  } catch (raw) {
+    throw new BridgeExecFailedError(req.cli, (raw as Error).message)
+  }
+}
+
+// Check-then-act for non-I/O (no try-catch needed)
+const item = store.get(id)
+if (!item) throw new WorkNotFoundError(id)
 ```
+
+**Rules:**
+- try-catch at I/O boundaries (file, subprocess, network, JSON parse)
+- Always transform raw errors → domain-typed errors with `code` + `recoverable`
+- Never catch-and-ignore (at minimum log)
+- Check-then-throw for in-memory lookups (no try-catch needed)
+- See `vault://10_observability/error_handling` for full error taxonomy
 
 ### Variables
 - Prefer `const` over `let`
@@ -516,7 +536,7 @@ Foundational (check all decisions against): **ADR-010**, **ADR-014**, **ADR-017*
 2. **Bun native FIRST** — check `Bun.*` API before `bun add`
 3. **TDD strict** — test fails first, watch fail, then code
 4. **No `else`** — early returns only
-5. **No try/catch** — use `Result<T, E>` pattern (see Style guide)
+5. **Try-catch only at I/O boundaries** — typed error classes, never catch-and-ignore
 6. **Single-word names** — `cfg` not `configuration`
 7. **Bun APIs** — `Bun.file()` not `fs.readFile`
 8. **Snake_case in DB** — Drizzle convention
