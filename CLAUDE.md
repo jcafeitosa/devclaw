@@ -65,12 +65,28 @@ Full methodology in `## Methodology (mandatory per ADR-014)` below.
 
 Complete documentation (~543 files) in Obsidian vault. **Always consult before architectural decisions.**
 
+When reviewing anything that affects agent liveness, use this order:
+1. `06_agent_os` for think/remember/act/learn loops
+2. `53_gateway_daemon` for host lifecycle and connection ownership
+3. `05_communication_os` for visible coordination
+4. `04_work_management` for task/state transitions
+5. `07_learning` and `43_self_correction` for adaptation and recovery
+
 Quick refs (vault paths):
 - `vault://DevClaud.md` — main index
 - `vault://00_vision/` — purpose + principles
 - `vault://18_decisions/` — 19 ADRs (all accepted)
 - `vault://_implementation/` — implementation kickoff
 - `vault://_diagrams/` — system diagrams
+
+Core operating model refs:
+- `vault://06_agent_os/` — cognition, context, prompt, memory, skills, tools, autonomy
+- `vault://53_gateway_daemon/` — long-lived host process and gateway boundary
+- `vault://05_communication_os/` — channels, threads, notifications
+- `vault://04_work_management/` — work items, dependencies, workflow engine
+- `vault://07_learning/` — experience, skills, policy evolution
+- `vault://43_self_correction/` — detect → hypothesize → fix → verify
+- `vault://47_checkpoints_rewind/` — checkpoints and rewind
 
 Vault access for agents:
 ```bash

@@ -1,10 +1,12 @@
 # Design: Communication OS (Channels + Threads + Notifications)
 
 > Vault: `05_communication_os/`. Phase 2 (último item).
+> Vault relationship: `agent_lifecycle` + `work_management` + `gateway_daemon`.
 
 ## 🎯 Goal
 
 Primitivas de comunicação: Channels (5 types) · Threads (tópicos dentro de channel) · AgentComm router (4 modos) · NotificationCenter (6 types + delivery).
+Communication is the social surface that makes agents visible, interruptible, and accountable.
 
 ## 🧩 Componentes
 
@@ -14,6 +16,15 @@ Primitivas de comunicação: Channels (5 types) · Threads (tópicos dentro de c
 4. `AgentCommRouter`: 4 modos — `direct(from,to)`, `broadcast(roles?)`, `channel(channelId)`, `event(type)`; uses existing `EventEmitter`.
 5. `NotificationCenter`: emit + delivery dispatchers (in-app default + pluggable external); types + priority.
 6. Barrel + `@devclaw/core/comm` subpath.
+
+## Liveness fit
+
+Communication is where the system shows presence:
+
+- channels carry intent and interruptions
+- threads preserve context around work
+- notifications surface progress and escalations
+- access policy keeps the social surface aligned with the workspace
 
 ## 📋 Plan (6 tasks)
 
@@ -31,3 +42,4 @@ Primitivas de comunicação: Channels (5 types) · Threads (tópicos dentro de c
 - 0 skip/fail/info/suppressions
 - Access-denied policies tested (read/write)
 - Notification with multi-delivery aggregates results
+- Critical channel policy inherits from workspace/project context where applicable
