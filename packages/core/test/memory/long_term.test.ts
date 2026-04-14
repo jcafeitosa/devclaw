@@ -1,7 +1,21 @@
-import { describe, expect, test } from "bun:test"
+import { afterEach, describe, expect, test } from "bun:test"
+import { mkdtemp, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { HashEmbedder } from "../../src/memory/embedding.ts"
 import { InMemoryLongTerm } from "../../src/memory/long_term.ts"
 import type { MemoryItem } from "../../src/memory/types.ts"
+import { SqliteVectorAdapter } from "../../src/adapter/vector.ts"
+
+const dirs: string[] = []
+
+afterEach(async () => {
+  while (dirs.length > 0) {
+    const dir = dirs.pop()
+    if (!dir) continue
+    await rm(dir, { recursive: true, force: true })
+  }
+})
 
 function mk(id: string, content: string, tags: string[] = [], pinned = false): MemoryItem {
   const now = Date.now()
@@ -24,6 +38,27 @@ describe("InMemoryLongTerm", () => {
     const s = new InMemoryLongTerm({ embedder })
     await s.write(mk("a", "apple"))
     expect((await s.get("a"))?.content).toBe("apple")
+  })
+
+  test("recall can hydrate from sqlite vector storage after restart", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "devclaw-long-term-"))
+    dirs.push(dir)
+    const sqlitePath = join(dir, "vectors.db")
+
+    const first = new InMemoryLongTerm({
+      embedder,
+      vector: new SqliteVectorAdapter({ sqlitePath }),
+    })
+    await first.write(mk("a", "postgres migration strategy"))
+    await first.write(mk("b", "react component lifecycle"))
+
+    const second = new InMemoryLongTerm({
+      embedder,
+      vector: new SqliteVectorAdapter({ sqlitePath }),
+    })
+    const hits = await second.recall({ text: "postgres schema migration", limit: 1 })
+    expect(hits[0]?.item.id).toBe("a")
+    expect(hits[0]?.item.content).toContain("postgres")
   })
 
   test("recall returns similar items ranked by cosine", async () => {

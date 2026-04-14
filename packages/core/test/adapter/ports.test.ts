@@ -1,9 +1,22 @@
-import { describe, expect, test } from "bun:test"
+import { afterEach, describe, expect, test } from "bun:test"
+import { mkdtemp, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import { MemoryBlobAdapter } from "../../src/adapter/blob.ts"
 import { AdapterRegistry } from "../../src/adapter/registry.ts"
 import { MemoryStorage } from "../../src/adapter/storage.ts"
-import { MemoryVectorAdapter } from "../../src/adapter/vector.ts"
+import { MemoryVectorAdapter, SqliteVectorAdapter } from "../../src/adapter/vector.ts"
+
+const dirs: string[] = []
+
+afterEach(async () => {
+  while (dirs.length > 0) {
+    const dir = dirs.pop()
+    if (!dir) continue
+    await rm(dir, { recursive: true, force: true })
+  }
+})
 
 describe("MemoryStorage", () => {
   test("executes basic relational flow", async () => {
@@ -54,12 +67,92 @@ describe("MemoryVectorAdapter", () => {
     expect(hits[0]?.score).toBeGreaterThanOrEqual(hits[1]?.score ?? 0)
   })
 
+  test("refreshes indexes when the same id is upserted again", async () => {
+    const vector = new MemoryVectorAdapter()
+    await vector.upsert([{ id: "a", vector: new Float32Array([1, 0]), metadata: { kind: "db", tags: ["core"] } }])
+    await vector.upsert([{ id: "a", vector: new Float32Array([0, 1]), metadata: { kind: "ui", tags: ["docs"] } }])
+
+    const oldHits = await vector.query(new Float32Array([1, 0]), {
+      topK: 1,
+      filter: { kind: "db", tags: ["core"] },
+    })
+    const newHits = await vector.query(new Float32Array([0, 1]), {
+      topK: 1,
+      filter: { kind: "ui", tags: ["docs"] },
+    })
+
+    expect(oldHits).toEqual([])
+    expect(newHits.map((hit) => hit.id)).toEqual(["a"])
+  })
+
   test("deletes vectors and reports size", async () => {
     const vector = new MemoryVectorAdapter()
     await vector.upsert([{ id: "a", vector: new Float32Array([1, 0]) }])
     expect(await vector.size()).toBe(1)
     await vector.delete(["a"])
     expect(await vector.size()).toBe(0)
+  })
+})
+
+describe("SqliteVectorAdapter", () => {
+  test("persists, filters and ranks vectors across instances", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "devclaw-vector-"))
+    dirs.push(dir)
+    const sqlitePath = join(dir, "vectors.db")
+
+    const first = new SqliteVectorAdapter({ sqlitePath })
+    await first.upsert([
+      { id: "a", vector: new Float32Array([1, 0]), metadata: { kind: "db", tags: ["core"] } },
+      { id: "b", vector: new Float32Array([0, 1]), metadata: { kind: "ui", tags: ["docs"] } },
+      { id: "c", vector: new Float32Array([0.8, 0.2]), metadata: { kind: "db", tags: ["core"] } },
+    ])
+
+    const second = new SqliteVectorAdapter({ sqlitePath })
+    expect(await second.size()).toBe(3)
+    const hits = await second.query(new Float32Array([1, 0]), {
+      topK: 2,
+      filter: { kind: "db", tags: ["core"] },
+    })
+
+    expect(hits.map((hit) => hit.id)).toEqual(["a", "c"])
+    expect(hits[0]?.score).toBeGreaterThanOrEqual(hits[1]?.score ?? 0)
+  })
+
+  test("refreshes indexes when the same id is replaced", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "devclaw-vector-"))
+    dirs.push(dir)
+    const sqlitePath = join(dir, "vectors.db")
+
+    const vector = new SqliteVectorAdapter({ sqlitePath })
+    await vector.upsert([{ id: "a", vector: new Float32Array([1, 0]), metadata: { kind: "db", tags: ["core"] } }])
+    await vector.upsert([{ id: "a", vector: new Float32Array([0, 1]), metadata: { kind: "ui", tags: ["docs"] } }])
+
+    const oldHits = await vector.query(new Float32Array([1, 0]), {
+      topK: 1,
+      filter: { kind: "db", tags: ["core"] },
+    })
+    const newHits = await vector.query(new Float32Array([0, 1]), {
+      topK: 1,
+      filter: { kind: "ui", tags: ["docs"] },
+    })
+
+    expect(oldHits).toEqual([])
+    expect(newHits.map((hit) => hit.id)).toEqual(["a"])
+  })
+
+  test("deletes persisted vectors", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "devclaw-vector-"))
+    dirs.push(dir)
+    const sqlitePath = join(dir, "vectors.db")
+
+    const vector = new SqliteVectorAdapter({ sqlitePath })
+    await vector.upsert([{ id: "a", vector: new Float32Array([1, 0]) }])
+    expect(await vector.size()).toBe(1)
+    await vector.delete(["a"])
+    expect(await vector.size()).toBe(0)
+
+    const reopened = new SqliteVectorAdapter({ sqlitePath })
+    expect(await reopened.size()).toBe(0)
   })
 })
 
