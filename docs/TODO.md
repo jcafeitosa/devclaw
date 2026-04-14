@@ -39,7 +39,7 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 |---|---|---|
 | Team Composition (roles/assembly/patterns) | `44_team_composition/` | ✅ |
 | Collaboration System (4 modes) | `05_communication_os/collaboration_system` | ✅ |
-| Subagents w/ isolation | `06_agent_os/subagents` | ⬜ |
+| Subagents w/ isolation | `06_agent_os/subagents` | ✅ |
 | Slash Commands core | `46_slash_commands/` | ⬜ |
 | Hooks + Hard Gates | `51_hooks/` · `55_dev_methodology/hard_gates` | ⬜ |
 | Checkpoints & Rewind | `47_checkpoints_rewind/` | ⬜ |
