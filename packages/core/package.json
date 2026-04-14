@@ -17,6 +17,7 @@
     "./governance": "./src/governance/index.ts",
     "./hook": "./src/hook/index.ts",
     "./learning": "./src/learning/index.ts",
+    "./lsp": "./src/lsp/index.ts",
     "./memory": "./src/memory/index.ts",
     "./node": "./src/node/index.ts",
     "./oauth": "./src/oauth/index.ts",
