@@ -70,7 +70,16 @@ export async function issueAuthToken(secret: string, claims: Record<string, unkn
   })
 }
 
-export function createApp(cfg: AppConfig) {
+export interface ShutdownControls {
+  beginShutdown(): void
+  isShuttingDown(): boolean
+  inflight(): number
+  drain(opts?: { timeoutMs?: number; pollMs?: number }): Promise<void>
+}
+
+export type DaemonApp = ReturnType<typeof buildElysiaApp> & ShutdownControls
+
+function buildElysiaApp(cfg: AppConfig) {
   const version = cfg.version ?? VERSION
   const rt = cfg.runtime
   const acp = new ACPServer({ agentName: "devclaw", agentVersion: version })
@@ -78,8 +87,13 @@ export function createApp(cfg: AppConfig) {
   registerBuiltinTools(mcp, cfg.mcpBackends ?? {})
   const secret = authSecret(cfg)
   const requireFromLoopback = cfg.auth?.requireFromLoopback ?? false
+  const shutdownState = {
+    shuttingDown: false,
+    inflight: 0,
+  }
+  const DRAINABLE_ROUTES = new Set(["/invoke", "/consensus"])
 
-  return new Elysia()
+  const app = new Elysia()
     .use(bearer())
     .use(
       jwt({
@@ -103,7 +117,29 @@ export function createApp(cfg: AppConfig) {
         return { error: "invalid bearer token" }
       }
     })
-    .get("/health", () => ({ status: "ok" }))
+    .onBeforeHandle(({ request, set }) => {
+      const pathname = new URL(request.url).pathname
+      if (!DRAINABLE_ROUTES.has(pathname)) return
+      if (shutdownState.shuttingDown) {
+        set.status = 503
+        return { error: "daemon is shutting down" }
+      }
+      shutdownState.inflight++
+    })
+    .onAfterHandle(({ request }) => {
+      const pathname = new URL(request.url).pathname
+      if (!DRAINABLE_ROUTES.has(pathname)) return
+      if (shutdownState.inflight > 0) shutdownState.inflight--
+    })
+    .onError(({ request }) => {
+      const pathname = new URL(request.url).pathname
+      if (!DRAINABLE_ROUTES.has(pathname)) return
+      if (shutdownState.inflight > 0) shutdownState.inflight--
+    })
+    .get("/health", () => ({
+      status: "ok",
+      ...(shutdownState.shuttingDown ? { shuttingDown: true } : {}),
+    }))
     .get("/version", () => ({ version }))
     .get(
       "/discover",
@@ -288,4 +324,30 @@ export function createApp(cfg: AppConfig) {
         }
       },
     })
+
+  return { app, shutdownState }
+}
+
+export function createApp(cfg: AppConfig): DaemonApp {
+  const { app, shutdownState } = buildElysiaApp(cfg)
+
+  const controls: ShutdownControls = {
+    beginShutdown() {
+      shutdownState.shuttingDown = true
+    },
+    isShuttingDown() {
+      return shutdownState.shuttingDown
+    },
+    inflight() {
+      return shutdownState.inflight
+    },
+    async drain({ timeoutMs = 30_000, pollMs = 20 } = {}) {
+      const deadline = Date.now() + timeoutMs
+      while (shutdownState.inflight > 0 && Date.now() < deadline) {
+        await Bun.sleep(pollMs)
+      }
+    },
+  }
+
+  return Object.assign(app, controls) as DaemonApp
 }

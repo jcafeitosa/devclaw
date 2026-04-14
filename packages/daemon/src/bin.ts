@@ -84,9 +84,15 @@ async function bootstrap(): Promise<void> {
   })
 
   const shutdown = async (signal: string) => {
-    process.stdout.write(`received ${signal}, shutting down\n`)
+    process.stdout.write(`received ${signal}, draining in-flight requests\n`)
+    app.beginShutdown()
+    await app.drain({ timeoutMs: 30_000 })
+    const remaining = app.inflight()
+    if (remaining > 0) {
+      process.stdout.write(`timed out with ${remaining} in-flight; force-closing\n`)
+    }
     await server.stop()
-    process.exit(0)
+    process.exit(remaining > 0 ? 1 : 0)
   }
   process.on("SIGINT", () => void shutdown("SIGINT"))
   process.on("SIGTERM", () => void shutdown("SIGTERM"))
