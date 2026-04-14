@@ -11,6 +11,16 @@
         "typescript": "6.0.2",
       },
     },
+    "packages/cli": {
+      "name": "@devclaw/cli",
+      "version": "0.0.0",
+      "bin": {
+        "devclaw": "./src/index.ts",
+      },
+      "dependencies": {
+        "@devclaw/core": "workspace:*",
+      },
+    },
     "packages/core": {
       "name": "@devclaw/core",
       "version": "0.0.0",
@@ -34,6 +44,8 @@
     "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@2.4.11", "", { "os": "win32", "cpu": "arm64" }, "sha512-RJhaTnY8byzxDt4bDVb7AFPHkPcjOPK3xBip4ZRTrN3TEfyhjLRm3r3mqknqydgVTB74XG8l4jMLwEACEeihVg=="],
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.4.11", "", { "os": "win32", "cpu": "x64" }, "sha512-A8D3JM/00C2KQgUV3oj8Ba15EHEYwebAGCy5Sf9GAjr5Y3+kJIYOiESoqRDeuRZueuMdCsbLZIUqmPhpYXJE9A=="],
+
+    "@devclaw/cli": ["@devclaw/cli@workspace:packages/cli"],
 
     "@devclaw/core": ["@devclaw/core@workspace:packages/core"],
 
