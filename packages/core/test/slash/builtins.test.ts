@@ -3,11 +3,12 @@ import { builtinDefinitions, registerBuiltinCommands } from "../../src/slash/bui
 import { SlashRegistry } from "../../src/slash/registry.ts"
 
 describe("built-in slash commands", () => {
-  test("4 built-ins: architect, tdd, code-review, security-review", () => {
+  test("5 built-ins: architect, consensus, tdd, code-review, security-review", () => {
     const defs = builtinDefinitions()
     expect(defs.map((d) => d.name).sort()).toEqual([
       "architect",
       "code-review",
+      "consensus",
       "security-review",
       "tdd",
     ])
@@ -28,11 +29,16 @@ describe("built-in slash commands", () => {
         .list()
         .map((d) => d.name)
         .sort(),
-    ).toEqual(["architect", "code-review", "security-review", "tdd"])
+    ).toEqual(["architect", "code-review", "consensus", "security-review", "tdd"])
   })
 
   test("builtin architect requires scope arg", () => {
     const arch = builtinDefinitions().find((d) => d.name === "architect")
     expect(arch?.args?.find((a) => a.name === "scope")?.required).toBe(true)
+  })
+
+  test("builtin consensus requires prompt arg", () => {
+    const consensus = builtinDefinitions().find((d) => d.name === "consensus")
+    expect(consensus?.args?.find((a) => a.name === "prompt")?.required).toBe(true)
   })
 })

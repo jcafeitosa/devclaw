@@ -85,8 +85,32 @@ Produce:
 - Remediation proposals
 - Risk score per finding`
 
+const CONSENSUS_BODY = `---
+description: Cross-CLI fan-out and winner selection for a prompt
+agents: [coordinator, reviewer, architect]
+tools: [Read, Bash]
+isolation: worktree
+timeout_minutes: 30
+args:
+  - name: prompt
+    type: string
+    required: true
+  - name: cli
+    type: string
+    default: claude,codex,gemini
+---
+You are invoked as /consensus. Fan out the prompt "{{args.prompt}}" across the available CLI bridges and pick the best response.
+If "{{args.cli}}" is provided, restrict the fan-out to that CLI subset.
+
+Return:
+- Winner CLI
+- Winner text
+- Score table
+- Short rationale for the decision`
+
 export const BUILTIN_COMMAND_SOURCES: Record<string, string> = {
   architect: ARCHITECT_BODY,
+  consensus: CONSENSUS_BODY,
   tdd: TDD_BODY,
   "code-review": CODE_REVIEW_BODY,
   "security-review": SECURITY_REVIEW_BODY,
