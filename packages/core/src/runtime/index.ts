@@ -1,6 +1,7 @@
 export * from "./ephemeral.ts"
 export * from "./errors.ts"
 export * from "./local.ts"
+export * from "./managed/index.ts"
 export * from "./registry.ts"
 export * from "./types.ts"
 export * from "./worktree.ts"
