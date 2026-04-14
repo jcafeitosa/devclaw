@@ -22,7 +22,8 @@
     "./slash": "./src/slash/index.ts",
     "./subagent": "./src/subagent/index.ts",
     "./team": "./src/team/index.ts",
-    "./tool": "./src/tool/index.ts"
+    "./tool": "./src/tool/index.ts",
+    "./work": "./src/work/index.ts"
   },
   "scripts": {
     "test": "bun test",
