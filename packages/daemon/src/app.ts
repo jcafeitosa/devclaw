@@ -1,6 +1,11 @@
 import { randomBytes } from "node:crypto"
 import type { AuthInfo, AuthStore } from "@devclaw/core/auth"
-import type { BridgeRegistry, FallbackStrategy } from "@devclaw/core/bridge"
+import type { BridgeRegistry, CliId, FallbackStrategy } from "@devclaw/core/bridge"
+import {
+  ConsensusNoBridgesError,
+  type ConsensusScorer,
+  runConsensus,
+} from "@devclaw/core/consensus"
 import { discover } from "@devclaw/core/discovery"
 import {
   ACPServer,
@@ -188,6 +193,42 @@ export function createApp(cfg: AppConfig) {
           cwd: t.Optional(t.String()),
           taskId: t.Optional(t.String()),
           agentId: t.Optional(t.String()),
+        }),
+      },
+    )
+    .post(
+      "/consensus",
+      async ({ body, status }) => {
+        const lengthScorer: ConsensusScorer = async (_cli, text) => {
+          if (text.length === 0) return 0
+          return 0.1 + Math.min(text.length, 2000) / 2000 * 0.9
+        }
+        try {
+          const result = await runConsensus(
+            { bridges: rt.bridges, scorer: lengthScorer, clis: body.clis as CliId[] | undefined },
+            {
+              taskId: body.taskId ?? `task_${Date.now()}`,
+              agentId: body.agentId ?? "daemon",
+              cli: "claude",
+              cwd: body.cwd ?? process.cwd(),
+              prompt: body.prompt,
+            },
+          )
+          return { status: "ok", ...result }
+        } catch (err) {
+          if (err instanceof ConsensusNoBridgesError) {
+            return status(400, { status: "error", error: err.message })
+          }
+          throw err
+        }
+      },
+      {
+        body: t.Object({
+          prompt: t.String({ minLength: 1 }),
+          clis: t.Optional(t.Array(t.String())),
+          taskId: t.Optional(t.String()),
+          agentId: t.Optional(t.String()),
+          cwd: t.Optional(t.String()),
         }),
       },
     )
