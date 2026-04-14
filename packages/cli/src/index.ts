@@ -2,6 +2,7 @@ import { createColorizer } from "./color.ts"
 import { makeAuthCommand } from "./commands/auth.ts"
 import { makeConsensusCommand } from "./commands/consensus.ts"
 import { makeDiscoverCommand } from "./commands/discover.ts"
+import { makeDoctorCommand } from "./commands/doctor.ts"
 import { makeInitCommand } from "./commands/init.ts"
 import { makeInvokeCommand } from "./commands/invoke.ts"
 import { makeBridgesCommand, makeProvidersCommand } from "./commands/providers.ts"
@@ -24,6 +25,7 @@ export function buildRegistry(lazyRuntime: () => Promise<Runtime>): CommandRegis
   reg.register(makeBridgesCommand(async () => (await lazyRuntime()).bridges))
   reg.register(makeInvokeCommand(async () => (await lazyRuntime()).fallback))
   reg.register(makeConsensusCommand(lazyRuntime))
+  reg.register(makeDoctorCommand())
   return reg
 }
 
