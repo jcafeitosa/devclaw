@@ -5,7 +5,7 @@ export interface RuntimeSpec {
   inheritEnv?: boolean
   stdin?: string
   timeoutMs?: number
-  onCwd?: (cwd: string) => void
+  onCwd?: (cwd: string) => void | Promise<void>
 }
 
 export interface RuntimeResult {

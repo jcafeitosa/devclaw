@@ -6,7 +6,7 @@ export class LocalRuntime implements ManagedRuntime {
 
   async run(spec: RuntimeSpec): Promise<RuntimeResult> {
     const cwd = spec.cwd ?? process.cwd()
-    spec.onCwd?.(cwd)
+    await spec.onCwd?.(cwd)
     const env =
       spec.inheritEnv === false ? (spec.env ?? {}) : { ...process.env, ...(spec.env ?? {}) }
     const started = performance.now()
