@@ -80,7 +80,7 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 |---|---|---|
 | TUI (Ink) | `49_tui/` | ⬜ |
 | Admin UI (Astro + Solid) | `18_decisions/adr_018` | ⬜ |
-| Docs site (Astro + Starlight) | — | ⬜ |
+| Docs site (Astro + Starlight) | — | ✅ scaffold + 5 pages + CI build |
 
 ## Phase 7 — Protocols (ACP + MCP)
 

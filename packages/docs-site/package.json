@@ -1,0 +1,16 @@
+{
+  "name": "@devclaw/docs-site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun x --bun astro dev",
+    "build": "bun x --bun astro build",
+    "preview": "bun x --bun astro preview",
+    "typecheck": "bun x --bun astro check"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.38.3",
+    "astro": "6.1.6"
+  }
+}
