@@ -1,3 +1,4 @@
+export * from "./adapter.ts"
 export * from "./devices.ts"
 export * from "./errors.ts"
 export * from "./health.ts"
