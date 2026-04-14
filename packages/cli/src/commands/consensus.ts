@@ -7,6 +7,7 @@ import {
 
 import type { CommandDef } from "../registry.ts"
 import type { Runtime } from "../runtime.ts"
+import { renderConsensusLive, type ConsensusLiveAppProps } from "./consensus_live.tsx"
 
 const LENGTH_CEILING = 2000
 
@@ -24,15 +25,24 @@ function parseCliList(raw: unknown): CliId[] | undefined {
     .filter((s) => s.length > 0)
 }
 
-export function makeConsensusCommand(getRuntime: () => Promise<Runtime>): CommandDef {
+export interface ConsensusCommandOptions {
+  renderLive?: (props: ConsensusLiveAppProps) => Promise<number>
+}
+
+export function makeConsensusCommand(
+  getRuntime: () => Promise<Runtime>,
+  opts: ConsensusCommandOptions = {},
+): CommandDef {
+  const renderLive = opts.renderLive ?? renderConsensusLive
   return {
     name: "consensus",
     describe: "Fan out a prompt across available CLI bridges and pick the best reply",
-    usage: 'devclaw consensus --prompt "..." [--cli claude,codex] [--json]',
+    usage: 'devclaw consensus --prompt "..." [--cli claude,codex] [--live] [--json]',
     flags: [
       { name: "prompt", describe: "Prompt text", required: true },
       { name: "cli", describe: "Comma-separated subset of CLI bridges (default: all registered)" },
       { name: "task", describe: "Task id (default: generated)" },
+      { name: "live", describe: "Render live Ink TUI", type: "boolean" },
       { name: "json", describe: "Emit machine-readable JSON result", type: "boolean" },
     ],
     async handler({ args, stdout, stderr }) {
@@ -49,6 +59,29 @@ export function makeConsensusCommand(getRuntime: () => Promise<Runtime>): Comman
         (typeof args.flags.task === "string" && args.flags.task) || `task_${Date.now()}`
       const runtime = await getRuntime()
       try {
+        if (args.flags.json) {
+          const result = await runConsensus(
+            { bridges: runtime.bridges, scorer: defaultLengthScorer, clis },
+            {
+              taskId,
+              agentId: "cli",
+              cli: "claude",
+              cwd: process.cwd(),
+              prompt,
+            },
+          )
+          stdout(JSON.stringify(result, null, 2))
+          return 0
+        }
+        if (args.flags.live === true) {
+          return await renderLive({
+            runtime,
+            prompt,
+            taskId,
+            clis,
+            scorer: defaultLengthScorer,
+          })
+        }
         const result = await runConsensus(
           { bridges: runtime.bridges, scorer: defaultLengthScorer, clis },
           {
@@ -59,10 +92,6 @@ export function makeConsensusCommand(getRuntime: () => Promise<Runtime>): Comman
             prompt,
           },
         )
-        if (args.flags.json) {
-          stdout(JSON.stringify(result, null, 2))
-          return 0
-        }
         stdout(`winner: ${result.winner}`)
         stdout("---")
         stdout(result.winnerText)

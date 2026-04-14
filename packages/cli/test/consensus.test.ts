@@ -8,6 +8,7 @@ import { BridgeRegistry, FallbackStrategy } from "@devclaw/core/bridge"
 import type { Bridge, BridgeEvent, Capabilities, CliId } from "@devclaw/core/bridge"
 import { ProviderCatalog } from "@devclaw/core/provider"
 
+import { defaultLengthScorer, makeConsensusCommand } from "../src/commands/consensus.ts"
 import { run } from "../src/index.ts"
 
 function stubBridge(cli: CliId, text: string): Bridge {
@@ -151,5 +152,47 @@ describe("CLI consensus command", () => {
     })
     expect(code).toBe(1)
     expect(err.join("\n").toLowerCase()).toContain("no eligible bridges")
+  })
+
+  test("--live delegates to Ink renderer", async () => {
+    type LiveProps = {
+      prompt: string
+      taskId: string
+      clis?: string[]
+      scorer: typeof defaultLengthScorer
+    }
+    let seen: LiveProps | null = null
+    const command = makeConsensusCommand(
+      async () => consensusRuntime(dir, { claude: "short", codex: "longer" }),
+      {
+        renderLive: async (props) => {
+          seen = {
+            prompt: props.prompt,
+            taskId: props.taskId,
+            clis: props.clis,
+            scorer: props.scorer,
+          }
+          return 17
+        },
+      },
+    )
+
+    const code = await command.handler({
+      args: {
+        command: "consensus",
+        positional: [],
+        flags: { prompt: "design auth", cli: "claude,codex", live: true },
+      },
+      stdout: push(out),
+      stderr: push(err),
+    })
+
+    expect(code).toBe(17)
+    expect(seen).not.toBeNull()
+    const liveProps = seen as unknown as LiveProps
+    expect(liveProps.prompt).toBe("design auth")
+    expect(liveProps.taskId.startsWith("task_")).toBe(true)
+    expect(liveProps.clis).toEqual(["claude", "codex"])
+    expect(liveProps.scorer).toBe(defaultLengthScorer)
   })
 })
