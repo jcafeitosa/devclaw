@@ -142,3 +142,18 @@ system reads as one operating model:
 5. Self-correction and checkpoints let the system recover.
 
 That is the actual "alive agent" story.
+
+## 9. Additional borrowings to surface
+
+The comparison work with the temporary repositories suggests a few more
+high-value concepts that should remain visible in Devclaw docs:
+
+- Paperclip-style routines and wake reasons as a first-class proactive entry point
+- atomic issue checkout with stale-lock adoption and release ownership
+- activity-ledger / run-log semantics for every mutation and wake
+- execution workspace lifecycle, including managed checkouts and runtime services
+- portable experience capsules with feedback and replay semantics
+- security defaults that separate loopback, remote exposure, and channel trust
+
+These are not just implementation details. They are the missing pieces that
+make an agent feel continuously alive rather than merely callable.

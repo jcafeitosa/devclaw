@@ -54,6 +54,18 @@ The vault expresses the concrete loop like this:
 
 `Receive Task -> Load Context -> Build Prompt -> Plan -> Execute -> Observe -> Reflect -> Done? -> Save Outputs`
 
+## 1.1 High-value borrowings
+
+The external repos point to a few implementation patterns that are worth making
+first-class in Devclaw docs and, where needed, in the system itself:
+
+- routine schedulers with `timer`, `assignment`, `on_demand`, and `automation` wake sources
+- coalescing and catch-up policies so recurring work does not spam the same agent
+- atomic checkout semantics with stale-lock recovery and explicit release rules
+- per-run activity and audit logs that capture run state, wake reasons, and mutations
+- managed execution workspaces with clear ownership and lifecycle
+- portable experience artifacts that can be exported, rated, and reapplied later
+
 ## 2. The core traits
 
 ### 2.1 Autonomy
@@ -110,6 +122,9 @@ Key enablers:
 - cron-style triggers
 - event-bus triggers
 - queue coalescing
+- recurring routine policies
+- issue assignment wakeups
+- comment/mention wakeups
 
 A proactive agent can say "this now matters" before a human explicitly asks.
 
@@ -131,6 +146,9 @@ Key enablers:
 - explicit workspace contract
 - serialized session lane
 - timeout hierarchy
+- stale-lock adoption
+- activity ledger
+- run transcript retention
 
 This is what makes an agent feel present over time instead of reset on every
 interaction.
@@ -155,6 +173,7 @@ The table below groups the features that contribute to liveness.
 | Recovery | Survive errors and continue | Paperclip session resume, Devclaw checkpoint/rewind/correction |
 | Learning | Improve over time | ClawCode ECAP/TECAP, Devclaw reflection/learning |
 | Triggering | Act without direct human input | Paperclip timers/assignments, OpenClaw gateway channels, Devclaw autonomy engine |
+| Runtime control | Manage live execution surfaces | Paperclip workspace runtime control, OpenClaw gateway host control |
 
 ## 4. What each reference emphasizes
 
@@ -178,9 +197,12 @@ Paperclip emphasizes the control plane:
 - it coordinates, it does not try to be the execution runtime
 - heartbeats create recurring agent activity
 - wakeups are coalesced
+- routines provide schedule/webhook/api entry points
 - lane serialization prevents session races
 - tasks are the communication channel
 - budgets and governance shape behavior
+- issue checkout is atomic and can recover stale locks
+- activity logs and run logs make mutation history visible
 
 This makes agents feel alive because they are continuously checked in, measured,
 and managed like workers.
@@ -194,6 +216,9 @@ ClawCode emphasizes local workspace fluency:
 - multi-role orchestration is normal
 - learning loops are part of the product
 - many tool surfaces are integrated in one terminal-native shell
+- experience capsules are exportable and feedback-aware
+- custom agents are Markdown files with YAML frontmatter
+- workspace discovery order is explicit instead of implicit
 
 This makes agents feel alive because they have persistent local memory, local
 rituals, and a broad action surface.
