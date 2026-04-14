@@ -1,3 +1,4 @@
+export * from "./adapter.ts"
 export * from "./audit.ts"
 export * from "./errors.ts"
 export * from "./redaction.ts"

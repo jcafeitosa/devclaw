@@ -1,4 +1,5 @@
 import { EventEmitter } from "../util/event_emitter.ts"
+import { BunPtyAdapter, type PtyAdapter, type PtyProcess } from "./adapter.ts"
 import type { TerminalAuditSink } from "./audit.ts"
 import { TerminalAlreadyStartedError } from "./errors.ts"
 import { DEFAULT_REDACTION_PATTERNS, type RedactionPattern, redactOutput } from "./redaction.ts"
@@ -31,6 +32,7 @@ export type TerminalApprover = (
 ) => Promise<TerminalApprovalDecision> | TerminalApprovalDecision
 
 export interface TerminalSessionConfig {
+  adapter?: PtyAdapter
   requireApproval?: boolean
   approver?: TerminalApprover
   audit?: TerminalAuditSink
@@ -40,15 +42,17 @@ export interface TerminalSessionConfig {
 
 export class TerminalSession {
   readonly events = new EventEmitter<TerminalEvents>()
-  private proc: ReturnType<typeof Bun.spawn> | undefined
+  private proc: PtyProcess | undefined
   private dims: TerminalSize = { cols: 80, rows: 24 }
   private started = false
   private readonly cfg: TerminalSessionConfig
+  private readonly adapter: PtyAdapter
   private readonly patterns: readonly RedactionPattern[]
   private startedAt = 0
 
   constructor(cfg: TerminalSessionConfig = {}) {
     this.cfg = cfg
+    this.adapter = cfg.adapter ?? new BunPtyAdapter()
     this.patterns = cfg.redactionPatterns ?? DEFAULT_REDACTION_PATTERNS
   }
 
@@ -72,20 +76,12 @@ export class TerminalSession {
     this.startedAt = performance.now()
     if (opts.cols !== undefined) this.dims.cols = opts.cols
     if (opts.rows !== undefined) this.dims.rows = opts.rows
-    const env = opts.env
-      ? {
-          ...process.env,
-          ...opts.env,
-          COLUMNS: String(this.dims.cols),
-          LINES: String(this.dims.rows),
-        }
-      : { ...process.env, COLUMNS: String(this.dims.cols), LINES: String(this.dims.rows) }
-    this.proc = Bun.spawn(opts.command, {
+    this.proc = this.adapter.spawn({
+      command: opts.command,
       cwd: opts.cwd,
-      env,
-      stdin: "pipe",
-      stdout: "pipe",
-      stderr: "pipe",
+      env: opts.env,
+      cols: this.dims.cols,
+      rows: this.dims.rows,
     })
     this.cfg.audit?.({
       kind: "start",
@@ -94,9 +90,11 @@ export class TerminalSession {
       cwd: opts.cwd,
       reason: opts.reason,
     })
-    void this.pipe(this.proc.stdout as ReadableStream<Uint8Array> | null, "stdout")
-    void this.pipe(this.proc.stderr as ReadableStream<Uint8Array> | null, "stderr")
-    void this.proc.exited.then((exitCode) => {
+    this.proc.onOutput(({ data, stream }) => {
+      const out = this.cfg.redact ? redactOutput(data, this.patterns) : data
+      this.events.emit("output", { data: out, stream })
+    })
+    this.proc.onExit(({ exitCode }) => {
       const durationMs = performance.now() - this.startedAt
       this.cfg.audit?.({ kind: "exit", at: Date.now(), exitCode, durationMs })
       this.events.emit("exit", { exitCode })
@@ -104,14 +102,12 @@ export class TerminalSession {
   }
 
   async write(data: string): Promise<void> {
-    const sink = this.proc?.stdin as { write?: (d: string) => void } | undefined
-    sink?.write?.(data)
+    await this.proc?.write(data)
     this.cfg.audit?.({ kind: "write", at: Date.now(), bytes: data.length })
   }
 
   async closeStdin(): Promise<void> {
-    const sink = this.proc?.stdin as { end?: () => Promise<void> | void } | undefined
-    await sink?.end?.()
+    await this.proc?.closeStdin?.()
   }
 
   kill(signal: NodeJS.Signals = "SIGTERM"): void {
@@ -121,26 +117,10 @@ export class TerminalSession {
 
   resize(cols: number, rows: number): void {
     this.dims = { cols, rows }
+    this.proc?.resize(cols, rows)
   }
 
   size(): TerminalSize {
     return { ...this.dims }
-  }
-
-  private async pipe(
-    stream: ReadableStream<Uint8Array> | null,
-    which: "stdout" | "stderr",
-  ): Promise<void> {
-    if (!stream) return
-    const reader = stream.getReader()
-    const decoder = new TextDecoder()
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) return
-      const raw = decoder.decode(value, { stream: true })
-      if (!raw) continue
-      const data = this.cfg.redact ? redactOutput(raw, this.patterns) : raw
-      this.events.emit("output", { data, stream: which })
-    }
   }
 }
