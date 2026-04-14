@@ -24,6 +24,7 @@
     "./node": "./src/node/index.ts",
     "./observability": "./src/observability/index.ts",
     "./oauth": "./src/oauth/index.ts",
+    "./permission": "./src/permission/index.ts",
     "./prompt": "./src/prompt/index.ts",
     "./protocol": "./src/protocol/index.ts",
     "./provider": "./src/provider/index.ts",
