@@ -7,6 +7,7 @@ export interface BuiltinToolBackends {
   getProjectOverview?: () => Promise<unknown> | unknown
   getDecisions?: (filter?: string) => Promise<unknown> | unknown
   getSkillsFor?: (task: string) => Promise<unknown> | unknown
+  submitObservation?: (kind: string, payload: unknown) => Promise<unknown> | unknown
 }
 
 function ensure<T>(value: T | undefined, name: string): T {
@@ -106,6 +107,24 @@ export function registerBuiltinTools(server: MCPServer, backends: BuiltinToolBac
       const i = input as { task?: string }
       const fn = configured(backends.getSkillsFor, "getSkillsFor")
       return fn(ensure(i.task, "task"))
+    },
+  })
+
+  server.registerTool({
+    name: "submit_observation",
+    description: "Submit an observation (lesson, error, success) to the learning pipeline.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", description: "observation type, e.g. lesson|error|success" },
+        payload: { description: "observation payload (free-form)" },
+      },
+      required: ["kind"],
+    },
+    handler: async (input) => {
+      const i = input as { kind?: string; payload?: unknown }
+      const fn = configured(backends.submitObservation, "submitObservation")
+      return fn(ensure(i.kind, "kind"), i.payload ?? {})
     },
   })
 }

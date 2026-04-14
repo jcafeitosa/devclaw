@@ -4,6 +4,7 @@ import {
   isRequest,
   JsonRpcError,
   type JsonRpcMessage,
+  makeNotification,
   parseMessage,
   successResponse,
 } from "./jsonrpc.ts"
@@ -57,6 +58,7 @@ export interface MCPServerConfig {
   policies?: Record<string, MCPConsumerPolicy>
   defaultPolicy?: MCPConsumerPolicy
   audit?: MCPAuditSink
+  send?: (raw: string) => void | Promise<void>
 }
 
 export class MCPServer {
@@ -69,30 +71,41 @@ export class MCPServer {
   private readonly policies: Record<string, MCPConsumerPolicy>
   private readonly defaultPolicy: MCPConsumerPolicy
   private readonly audit?: MCPAuditSink
+  private readonly send?: (raw: string) => void | Promise<void>
 
   constructor(cfg: MCPServerConfig) {
     this.serverName = cfg.serverName
     this.serverVersion = cfg.serverVersion
+    const hasSend = cfg.send !== undefined
     this.capabilities = cfg.capabilities ?? {
-      tools: { listChanged: false },
-      resources: { listChanged: false },
-      prompts: { listChanged: false },
+      tools: { listChanged: hasSend },
+      resources: { listChanged: hasSend },
+      prompts: { listChanged: hasSend },
     }
     this.policies = cfg.policies ?? {}
     this.defaultPolicy = cfg.defaultPolicy ?? {}
     this.audit = cfg.audit
+    this.send = cfg.send
   }
 
   registerTool(def: MCPToolDefinition): void {
     this.tools.set(def.name, def)
+    this.notifyListChanged("tools")
   }
 
   registerResource(def: MCPResourceDefinition): void {
     this.resources.set(def.uri, def)
+    this.notifyListChanged("resources")
   }
 
   registerPrompt(def: MCPPromptDefinition): void {
     this.prompts.set(def.name, def)
+    this.notifyListChanged("prompts")
+  }
+
+  private notifyListChanged(kind: "tools" | "resources" | "prompts"): void {
+    if (!this.send) return
+    void this.send(JSON.stringify(makeNotification(`notifications/${kind}/list_changed`)))
   }
 
   async handle(raw: string, ctx: MCPHandleContext = {}): Promise<string | null> {
