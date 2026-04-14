@@ -64,12 +64,15 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 | Policy Engine | `07_learning/policy_engine` | ✅ |
 | Skill Evolution | `07_learning/skill_evolution` | ✅ |
 
-## Phase 5 — Governance + Research
+## Phase 5 — Governance + Research ✅
 
 | Module | Vault | Status |
 |---|---|---|
 | Research Engine (RAG) | `45_research_engine/` | ✅ |
-| Governance / policies | `03_company_os/governance` | ⬜ |
+| Governance / policies | `03_company_os/governance` | ✅ |
+| Budget System | `03_company_os/budget_system` | ✅ |
+| Goal Engine | `03_company_os/goal_engine` | ✅ |
+| Org Structure | `03_company_os/org_structure` | ✅ |
 
 ## Phase 6 — Polish (UI/UX)
 
