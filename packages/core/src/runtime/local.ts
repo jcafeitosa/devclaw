@@ -21,21 +21,22 @@ export class LocalRuntime implements ManagedRuntime {
       proc.stdin.write(spec.stdin)
       await proc.stdin.end()
     }
-    let timer: ReturnType<typeof setTimeout> | undefined
-    let timedOut = false
     if (spec.timeoutMs !== undefined) {
-      timer = setTimeout(() => {
-        timedOut = true
+      const timeoutMs = spec.timeoutMs
+      const timeout = new Promise<"timeout">((resolve) =>
+        setTimeout(() => resolve("timeout"), timeoutMs),
+      )
+      const winner = await Promise.race([proc.exited.then(() => "done" as const), timeout])
+      if (winner === "timeout") {
         proc.kill("SIGKILL")
-      }, spec.timeoutMs)
+        throw new RuntimeTimeoutError(timeoutMs)
+      }
     }
     const [stdout, stderr, exitCode] = await Promise.all([
       new Response(proc.stdout).text(),
       new Response(proc.stderr).text(),
       proc.exited,
     ])
-    if (timer) clearTimeout(timer)
-    if (timedOut) throw new RuntimeTimeoutError(spec.timeoutMs ?? 0)
     return {
       exitCode,
       stdout,
