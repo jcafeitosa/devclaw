@@ -5,6 +5,7 @@ import { join } from "node:path"
 
 import { ACPServer } from "../../src/protocol/acp_server.ts"
 import { ACPPermissionRequestStore } from "../../src/protocol/acp_permission_store.ts"
+import { ACPSessionStore } from "../../src/protocol/acp_session_store.ts"
 import { makeRequest } from "../../src/protocol/jsonrpc.ts"
 
 const dirs: string[] = []
@@ -35,12 +36,15 @@ describe("ACP pending permission persistence", () => {
     const dir = await mkdtemp(join(tmpdir(), "devclaw-acp-perm-"))
     dirs.push(dir)
     const store = new ACPPermissionRequestStore({ sqlitePath: join(dir, "acp-perm.db") })
+    const sessionStore = new ACPSessionStore({ sqlitePath: join(dir, "acp-session.db") })
     const sentA: Array<{ id?: number; method?: string; params?: unknown }> = []
     const sentB: Array<{ id?: number; method?: string; params?: unknown }> = []
+    const replaySeen = Promise.withResolvers<void>()
 
     const server = new ACPServer({
       agentName: "a",
       agentVersion: "0",
+      sessionStore,
       permissionStore: store,
       send: (raw) => {
         sentA.push(JSON.parse(raw))
@@ -64,17 +68,23 @@ describe("ACP pending permission persistence", () => {
     })
 
     const sessionId = await initSession(server)
+    expect((await sessionStore.get(sessionId))?.state).toBe("idle")
     const pendingPrompt = call(server, "prompt", { sessionId, prompt: "go" })
     await Bun.sleep(10)
 
     const firstReq = sentA.find((msg) => msg.method === "session/permission/request")
     expect(firstReq).toBeDefined()
+    expect((await sessionStore.get(sessionId))?.state).toBe("awaiting_permission")
     expect(await store.list({ sessionId })).toHaveLength(1)
 
     server.setSend((raw) => {
-      sentB.push(JSON.parse(raw))
+      const msg = JSON.parse(raw)
+      sentB.push(msg)
+      if (msg.method === "session/permission/request") {
+        replaySeen.resolve()
+      }
     })
-    await server.replayPendingPermissions(sessionId)
+    await replaySeen.promise
 
     const replayReq = sentB.find((msg) => msg.method === "session/permission/request")
     expect(replayReq).toBeDefined()
@@ -90,6 +100,7 @@ describe("ACP pending permission persistence", () => {
 
     const result = await pendingPrompt
     expect((result.result as { summary: string }).summary).toBe("permit=true")
+    expect((await sessionStore.get(sessionId))?.state).toBe("idle")
     expect(await store.list({ sessionId })).toHaveLength(0)
   })
 })

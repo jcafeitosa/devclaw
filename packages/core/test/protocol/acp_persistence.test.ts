@@ -41,6 +41,9 @@ describe("ACPServer persistence", () => {
 
     const second = new ACPServer({ agentName: "devclaw", agentVersion: "0", sessionStore: store })
     await init(second)
+    expect(second.listSessions()).toHaveLength(1)
+    expect(second.listSessions()[0]?.id).toBe(id)
+    expect(second.listSessions()[0]?.state).toBe("idle")
     const loaded = await call(second, "session/load", { sessionId: id })
     expect((loaded.result as { id: string; cwd: string }).id).toBe(id)
     expect((loaded.result as { id: string; cwd: string }).cwd).toBe("/tmp/project")
