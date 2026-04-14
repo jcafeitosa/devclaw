@@ -1,4 +1,5 @@
 export * from "./auth/index.ts"
+export * from "./cognitive/index.ts"
 export * from "./context/index.ts"
 export * from "./discovery/index.ts"
 export * from "./memory/index.ts"
