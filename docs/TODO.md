@@ -52,7 +52,7 @@ Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas found
 
 | ID | Task | Impact | Status |
 |---|---|---|---|
-| **KILL-01** | **`/consensus <task>` — cross-CLI fan-out + reflection winner** | Demo único que nenhum rival tem | 🟡 (2026-04-14, core + `devclaw consensus` CLI + `POST /consensus` daemon + `makeLLMJudgeScorer` pluggable judge, +19 testes. Falta: TUI live render + slash command wiring em builtins.ts) |
+| **KILL-01** | **`/consensus <task>` — cross-CLI fan-out + reflection winner** | Demo único que nenhum rival tem | 🟡 (2026-04-14, core + `devclaw consensus` CLI + `POST /consensus` daemon + `makeLLMJudgeScorer` pluggable judge + slash builtin `consensus`, +20 testes. Falta: TUI live render em Ink) |
 | **C-02** | Token-aware ranker: `score = rel × 1/(1+α·log(tokens))`, α=0.35 | -15% custo adicional; reordena prefix-stable para cache | ⬜ |
 | **C-03** | Budget hard-stop $0.15/task, $2/session, $10/day + TUI warnings | Paperclip parity | ⬜ |
 | **I-01** | Google AI + Ollama + **OpenRouter** (OpenRouter = 100+ modelos em 1 adapter) | Substitui H-03; unlock offline + rate-limit diversification | ⬜ |
