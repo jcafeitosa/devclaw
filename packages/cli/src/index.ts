@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { createColorizer } from "./color.ts"
 import { makeAuthCommand } from "./commands/auth.ts"
 import { makeConsensusCommand } from "./commands/consensus.ts"

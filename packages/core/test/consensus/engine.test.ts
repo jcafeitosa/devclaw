@@ -236,3 +236,57 @@ describe("runConsensus — scorer is called with (cli, text)", () => {
     expect(seen).toEqual([{ cli: "claude", text: "part 1 part 2" }])
   })
 })
+
+describe("runConsensus — observer callbacks", () => {
+  test("emits bridge lifecycle and scores", async () => {
+    const registry = new BridgeRegistry()
+    registry.register(
+      bridgeStub("claude", [
+        { type: "text", content: "claude output" },
+        { type: "completed" },
+      ]),
+    )
+    registry.register(
+      bridgeStub("codex", [
+        { type: "text", content: "codex output" },
+        { type: "completed" },
+      ]),
+    )
+
+    const started: string[] = []
+    const completed: string[] = []
+    const scored: string[] = []
+    const events: Array<{ cli: string; type: string }> = []
+
+    const result = await runConsensus(
+      {
+        bridges: registry,
+        scorer: async (_cli, text) => text.length,
+        observer: {
+          onParticipantStart(cli) {
+            started.push(cli)
+          },
+          onParticipantEvent(cli, event) {
+            events.push({ cli, type: event.type })
+          },
+          onParticipantComplete(participant) {
+            completed.push(participant.cli)
+          },
+          onScore(score) {
+            scored.push(score.cli)
+          },
+        },
+      },
+      req,
+    )
+
+    expect(started.sort()).toEqual(["claude", "codex"])
+    expect(completed.sort()).toEqual(["claude", "codex"])
+    expect(scored.sort()).toEqual(["claude", "codex"])
+    expect(events.filter((e) => e.type === "text").map((e) => e.cli).sort()).toEqual([
+      "claude",
+      "codex",
+    ])
+    expect(result.winner).toBe("claude")
+  })
+})

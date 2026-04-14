@@ -30,10 +30,18 @@ export interface ConsensusScorer {
   (cli: CliId, text: string, participant: ConsensusParticipant): Promise<number>
 }
 
+export interface ConsensusObserver {
+  onParticipantStart?(cli: CliId): void
+  onParticipantEvent?(cli: CliId, event: BridgeEvent): void
+  onParticipantComplete?(participant: ConsensusParticipant): void
+  onScore?(score: ConsensusScore): void
+}
+
 export interface ConsensusConfig {
   bridges: BridgeRegistry
   scorer: ConsensusScorer
   clis?: CliId[]
+  observer?: ConsensusObserver
 }
 
 export class ConsensusNoBridgesError extends Error {
@@ -61,18 +69,26 @@ async function eligibleBridges(
   return out
 }
 
-async function drainBridge(bridge: Bridge, req: BridgeRequest): Promise<ConsensusParticipant> {
+async function drainBridge(
+  bridge: Bridge,
+  req: BridgeRequest,
+  observer?: ConsensusObserver,
+): Promise<ConsensusParticipant> {
   const start = performance.now()
   const events: BridgeEvent[] = []
   let text = ""
+  observer?.onParticipantStart?.(bridge.cli)
   try {
     for await (const event of bridge.execute({ ...req, cli: bridge.cli })) {
       events.push(event)
+      observer?.onParticipantEvent?.(bridge.cli, event)
       if (event.type === "text") text += event.content
     }
-    return { cli: bridge.cli, text, events, durationMs: performance.now() - start }
+    const participant = { cli: bridge.cli, text, events, durationMs: performance.now() - start }
+    observer?.onParticipantComplete?.(participant)
+    return participant
   } catch (err) {
-    return {
+    const participant = {
       cli: bridge.cli,
       text,
       events,
@@ -82,6 +98,8 @@ async function drainBridge(bridge: Bridge, req: BridgeRequest): Promise<Consensu
         code: (err as { code?: string }).code,
       },
     }
+    observer?.onParticipantComplete?.(participant)
+    return participant
   }
 }
 
@@ -107,13 +125,15 @@ export async function runConsensus(
     )
   }
 
-  const participants = await Promise.all(bridges.map((b) => drainBridge(b, req)))
+  const participants = await Promise.all(
+    bridges.map((b) => drainBridge(b, req, cfg.observer)),
+  )
 
   const scores: ConsensusScore[] = await Promise.all(
     participants.map(async (p) => {
-      if (p.error) return { cli: p.cli, score: 0, feedback: p.error.message }
-      const score = await cfg.scorer(p.cli, p.text, p)
-      return { cli: p.cli, score }
+      const score = p.error ? { cli: p.cli, score: 0, feedback: p.error.message } : { cli: p.cli, score: await cfg.scorer(p.cli, p.text, p) }
+      cfg.observer?.onScore?.(score)
+      return score
     }),
   )
 
