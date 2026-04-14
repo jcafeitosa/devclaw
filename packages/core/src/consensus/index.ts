@@ -1,5 +1,6 @@
 import type { BridgeRegistry } from "../bridge/registry.ts"
 import type { Bridge, BridgeEvent, BridgeRequest, CliId } from "../bridge/types.ts"
+import type { ProviderCatalog } from "../provider/catalog.ts"
 
 export interface ConsensusParticipant {
   cli: CliId
@@ -122,5 +123,57 @@ export async function runConsensus(
     scores,
     participants,
     durationMs: performance.now() - start,
+  }
+}
+
+const DEFAULT_JUDGE_PROMPT =
+  "You are a strict judge. Rate the following response to the goal from 0 (useless) to 1 (excellent). " +
+  "Goal: {{goal}}\nCLI: {{cli}}\nResponse:\n{{text}}\n\n" +
+  "Respond ONLY with a single number between 0 and 1. No explanation."
+
+export interface LLMJudgeScorerConfig {
+  catalog: ProviderCatalog
+  providerId: string
+  model?: string
+  goal?: string
+  prompt?: string
+  maxTokens?: number
+  temperature?: number
+}
+
+function renderJudgePrompt(
+  template: string,
+  vars: { cli: CliId; text: string; goal: string },
+): string {
+  return template
+    .replaceAll("{{cli}}", vars.cli)
+    .replaceAll("{{text}}", vars.text)
+    .replaceAll("{{goal}}", vars.goal)
+}
+
+function parseJudgeScore(raw: string): number {
+  const match = raw.match(/-?\d+(?:\.\d+)?/)
+  if (!match) return 0
+  const n = Number.parseFloat(match[0])
+  if (Number.isNaN(n)) return 0
+  return Math.max(0, Math.min(1, n))
+}
+
+export function makeLLMJudgeScorer(cfg: LLMJudgeScorerConfig): ConsensusScorer {
+  const template = cfg.prompt ?? DEFAULT_JUDGE_PROMPT
+  return async (cli, text) => {
+    if (text.length === 0) return 0
+    const prompt = renderJudgePrompt(template, {
+      cli,
+      text,
+      goal: cfg.goal ?? "",
+    })
+    const raw = await cfg.catalog.generate(cfg.providerId, {
+      prompt,
+      model: cfg.model,
+      maxTokens: cfg.maxTokens ?? 16,
+      temperature: cfg.temperature ?? 0,
+    })
+    return parseJudgeScore(raw)
   }
 }
