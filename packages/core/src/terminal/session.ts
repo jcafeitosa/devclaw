@@ -1,5 +1,5 @@
 import { EventEmitter } from "../util/event_emitter.ts"
-import { BunPtyAdapter, type PtyAdapter, type PtyProcess } from "./adapter.ts"
+import { BunPtyAdapter, NodePtyAdapter, type PtyAdapter, type PtyProcess } from "./adapter.ts"
 import type { TerminalAuditSink } from "./audit.ts"
 import { TerminalAlreadyStartedError } from "./errors.ts"
 import { DEFAULT_REDACTION_PATTERNS, type RedactionPattern, redactOutput } from "./redaction.ts"
@@ -47,12 +47,14 @@ export class TerminalSession {
   private started = false
   private readonly cfg: TerminalSessionConfig
   private readonly adapter: PtyAdapter
+  private readonly canFallback: boolean
   private readonly patterns: readonly RedactionPattern[]
   private startedAt = 0
 
   constructor(cfg: TerminalSessionConfig = {}) {
     this.cfg = cfg
-    this.adapter = cfg.adapter ?? new BunPtyAdapter()
+    this.adapter = cfg.adapter ?? new NodePtyAdapter()
+    this.canFallback = !cfg.adapter
     this.patterns = cfg.redactionPatterns ?? DEFAULT_REDACTION_PATTERNS
   }
 
@@ -76,13 +78,7 @@ export class TerminalSession {
     this.startedAt = performance.now()
     if (opts.cols !== undefined) this.dims.cols = opts.cols
     if (opts.rows !== undefined) this.dims.rows = opts.rows
-    this.proc = this.adapter.spawn({
-      command: opts.command,
-      cwd: opts.cwd,
-      env: opts.env,
-      cols: this.dims.cols,
-      rows: this.dims.rows,
-    })
+    this.proc = this.spawnProcess(opts)
     this.cfg.audit?.({
       kind: "start",
       at: Date.now(),
@@ -122,5 +118,27 @@ export class TerminalSession {
 
   size(): TerminalSize {
     return { ...this.dims }
+  }
+
+  private spawnProcess(opts: TerminalStartWithReason): PtyProcess {
+    try {
+      return this.adapter.spawn({
+        command: opts.command,
+        cwd: opts.cwd,
+        env: opts.env,
+        cols: this.dims.cols,
+        rows: this.dims.rows,
+      })
+    } catch (err) {
+      if (!this.canFallback) throw err
+      const fallback = new BunPtyAdapter()
+      return fallback.spawn({
+        command: opts.command,
+        cwd: opts.cwd,
+        env: opts.env,
+        cols: this.dims.cols,
+        rows: this.dims.rows,
+      })
+    }
   }
 }
