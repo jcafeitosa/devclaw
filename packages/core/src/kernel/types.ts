@@ -9,20 +9,23 @@ export interface KernelEventText {
 
 export interface KernelEventLog {
   type: "log"
-  level: "info" | "warn" | "error"
+  level: "debug" | "info" | "warn" | "error"
   message: string
 }
 
 export interface KernelEventToolCall {
   type: "tool_call"
-  id: string
-  name: string
-  arguments: unknown
+  id?: string
+  name?: string
+  arguments?: unknown
+  tool?: string
+  args?: unknown
 }
 
 export interface KernelEventToolResult {
   type: "tool_result"
-  id: string
+  id?: string
+  tool?: string
   result: unknown
 }
 
@@ -34,13 +37,41 @@ export interface KernelEventError {
 
 export interface KernelEventCompleted {
   type: "completed"
+  summary?: string
+}
+
+export interface KernelEventStarted {
+  type: "started"
+  at: number
+}
+
+export interface KernelEventThought {
+  type: "thought"
+  content: string
+}
+
+export interface KernelEventFileChange {
+  type: "file_change"
+  path: string
+  diff?: string
+  action?: "create" | "modify" | "delete"
+}
+
+export interface KernelEventCommit {
+  type: "commit"
+  sha: string
+  message: string
 }
 
 export type KernelEvent =
+  | KernelEventStarted
+  | KernelEventThought
   | KernelEventText
   | KernelEventLog
   | KernelEventToolCall
   | KernelEventToolResult
+  | KernelEventFileChange
+  | KernelEventCommit
   | KernelEventError
   | KernelEventCompleted
 

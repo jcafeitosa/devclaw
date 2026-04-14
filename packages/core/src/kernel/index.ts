@@ -5,6 +5,7 @@ import { PermissionDeniedError, SafetyBlockedError } from "./errors.ts"
 import type { KernelContext, KernelEvent, KernelOp } from "./types.ts"
 
 export * from "./errors.ts"
+export * from "./guard.ts"
 export * from "./types.ts"
 
 export interface SafetyKernelConfig {
