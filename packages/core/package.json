@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./auth": "./src/auth/index.ts",
     "./bridge": "./src/bridge/index.ts",
+    "./cache": "./src/cache/index.ts",
     "./capability": "./src/capability/index.ts",
     "./checkpoint": "./src/checkpoint/index.ts",
     "./cognitive": "./src/cognitive/index.ts",
