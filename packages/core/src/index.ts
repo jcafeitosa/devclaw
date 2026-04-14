@@ -1,6 +1,7 @@
 export * from "./auth/index.ts"
 export * from "./context/index.ts"
 export * from "./discovery/index.ts"
+export * from "./memory/index.ts"
 export * from "./oauth/index.ts"
 export * from "./prompt/index.ts"
 export * from "./provider/index.ts"
