@@ -1,5 +1,6 @@
 export * from "./auth/index.ts"
 export * from "./bridge/index.ts"
+export * from "./checkpoint/index.ts"
 export * from "./cognitive/index.ts"
 export * from "./context/index.ts"
 export * from "./discovery/index.ts"
