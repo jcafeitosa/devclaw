@@ -1,0 +1,20 @@
+{
+  "name": "@devclaw/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "devclaw": "./src/index.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@devclaw/core": "workspace:*"
+  }
+}
