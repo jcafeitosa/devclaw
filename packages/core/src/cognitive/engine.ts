@@ -1,3 +1,4 @@
+import type { SafetyKernel } from "../kernel/index.ts"
 import type { MemoryService } from "../memory/service.ts"
 import { SafetyViolationError } from "../safety/errors.ts"
 import { createDefaultModerator } from "../safety/moderator.ts"
@@ -16,6 +17,7 @@ export interface CognitiveEngineConfig {
   router: ModelRouter
   executor: StepExecutor
   memory: MemoryService
+  kernel?: SafetyKernel
   moderator?: Moderator
   maxSteps?: number
   defaultTier?: Tier
@@ -71,8 +73,10 @@ export class CognitiveEngine {
       }
       const started = state.startedAt
       try {
-        const { output } = await this.cfg.executor.execute(ctx)
-        await this.assertSafeOutput(output)
+        const { output } = this.cfg.kernel
+          ? await this.executeWithKernel(task, ctx)
+          : await this.cfg.executor.execute(ctx)
+        if (!this.cfg.kernel) await this.assertSafeOutput(output)
         state.status = "completed"
         state.completedAt = Date.now()
         state.output = output
@@ -112,6 +116,48 @@ export class CognitiveEngine {
       }
     }
     return this.finalize(plan, states, episodes, "done", true)
+  }
+
+  private async executeWithKernel(
+    task: Task,
+    ctx: StepContext,
+  ): Promise<{ output: unknown }> {
+    const self = this
+    let output: unknown
+    for await (const _event of this.cfg.kernel!.invoke(
+      {
+        actor: task.agentId ?? "cognitive",
+        sessionId: task.sessionId,
+        taskId: task.goal,
+      },
+      {
+        kind: "cognitive",
+        tool: ctx.route.providerId,
+        action: "cognitive.step",
+        inputText: `${task.goal}\n${ctx.step.description}`,
+        input: {
+          goal: task.goal,
+          stepId: ctx.step.id,
+          providerId: ctx.route.providerId,
+        },
+        target: ctx.step.id,
+        execute: async function* () {
+          const result = await self.cfg.executor.execute(ctx)
+          output = result.output
+          const text =
+            typeof output === "string"
+              ? output
+              : output === undefined
+                ? ""
+                : JSON.stringify(output)
+          if (text) yield { type: "text" as const, content: text }
+          yield { type: "completed" as const }
+        },
+      },
+    )) {
+      // Kernel handles safety/permission/audit gating.
+    }
+    return { output }
   }
 
   private finalize(

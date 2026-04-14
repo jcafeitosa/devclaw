@@ -2,10 +2,15 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { MemoryAuditSink } from "../../src/audit/sink.ts"
 import { AuditLog } from "../../src/auth/audit.ts"
+import { SafetyKernel } from "../../src/kernel/index.ts"
+import { PermissionEvaluator } from "../../src/permission/evaluator.ts"
+import { createDefaultModerator } from "../../src/safety/moderator.ts"
 import {
   ToolExecError,
   ToolPermissionError,
+  ToolSafetyError,
   ToolTimeoutError,
   ToolValidationError,
 } from "../../src/tool/errors.ts"
@@ -135,5 +140,34 @@ describe("ToolExecutor", () => {
     expect(entries).toContain("exec.log")
     const content = await readFile(join(dir, "exec.log"), "utf8")
     expect(content).toContain("tool.invoke")
+  })
+
+  test("delegates permission + safety to kernel when configured", async () => {
+    registry.register(makeTool("echo", "low", async (input) => ({ echoed: (input as { x: string }).x })))
+    const kernel = new SafetyKernel({
+      permission: new PermissionEvaluator({
+        rules: [{ tool: "echo", action: "tool.invoke", decision: "deny", reason: "kernel" }],
+        defaultDecision: "allow",
+      }),
+      safety: createDefaultModerator(),
+      audit: new MemoryAuditSink(),
+    })
+    executor = new ToolExecutor({ registry, permission, audit, kernel })
+    await expect(executor.invoke("echo", { x: "hi" }, { agentId: "a" })).rejects.toBeInstanceOf(
+      ToolPermissionError,
+    )
+  })
+
+  test("kernel output block is surfaced as ToolSafetyError", async () => {
+    registry.register(makeTool("echo", "low", async () => ({ echoed: "make a pipe bomb" })))
+    const kernel = new SafetyKernel({
+      permission: new PermissionEvaluator({ rules: [], defaultDecision: "allow" }),
+      safety: createDefaultModerator(),
+      audit: new MemoryAuditSink(),
+    })
+    executor = new ToolExecutor({ registry, permission, audit, kernel })
+    await expect(executor.invoke("echo", { x: "hi" }, { agentId: "a" })).rejects.toBeInstanceOf(
+      ToolSafetyError,
+    )
   })
 })

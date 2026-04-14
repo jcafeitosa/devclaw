@@ -1,3 +1,4 @@
+import type { SafetyKernel } from "../kernel/index.ts"
 import type { ProviderCatalog } from "../provider/catalog.ts"
 import { createDefaultModerator } from "../safety/moderator.ts"
 import type { Moderator } from "../safety/types.ts"
@@ -10,6 +11,7 @@ export interface FallbackStrategyConfig {
   fallbackProviderId?: string
   fallbackModel?: string
   moderator?: Moderator
+  kernel?: SafetyKernel
 }
 
 export class FallbackStrategy {
@@ -19,6 +21,60 @@ export class FallbackStrategy {
     const self = this
     return {
       async *[Symbol.asyncIterator]() {
+        if (self.cfg.kernel) {
+          const bridge = await self.pickBridge(req)
+          if (bridge) {
+            for await (const event of self.cfg.kernel.invoke(
+              {
+                actor: req.agentId,
+                taskId: req.taskId,
+              },
+              {
+                kind: "bridge",
+                tool: bridge.cli,
+                action: "bridge.execute",
+                inputText: req.prompt,
+                input: { cli: req.cli, cwd: req.cwd, model: req.model },
+                target: req.cwd,
+                execute: () => bridge.execute(req) as AsyncIterable<import("../kernel/index.ts").KernelEvent>,
+              },
+            )) {
+              yield event as BridgeEvent
+            }
+            return
+          }
+          if (!self.cfg.fallbackProviderId) {
+            throw new Error(
+              `bridge: no bridge available for '${req.cli}' and no fallback provider configured`,
+            )
+          }
+          yield {
+            type: "log",
+            level: "info",
+            message: `bridge ${req.cli} unavailable — fallback to provider '${self.cfg.fallbackProviderId}'`,
+          }
+          yield { type: "started", at: Date.now() }
+          try {
+            const text = await self.cfg.catalog.generate(
+              self.cfg.fallbackProviderId,
+              {
+                prompt: req.prompt,
+                model: self.cfg.fallbackModel ?? req.model,
+                maxTokens: req.constraints?.maxTokens,
+              },
+              { actor: req.agentId, taskId: req.taskId },
+            )
+            yield { type: "text", content: text }
+            yield { type: "completed" }
+          } catch (err) {
+            yield {
+              type: "error",
+              message: err instanceof Error ? err.message : String(err),
+              recoverable: false,
+            }
+          }
+          return
+        }
         const moderator = self.cfg.moderator ?? createDefaultModerator()
         const moderation = await moderator.check(req.prompt, "input")
         if (moderation.flags.length > 0) {

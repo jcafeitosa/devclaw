@@ -1,4 +1,5 @@
 import type { AuditLog } from "../auth/audit.ts"
+import { PermissionDeniedError, SafetyBlockedError, type SafetyKernel } from "../kernel/index.ts"
 import type { Moderator } from "../safety/types.ts"
 import { EventEmitter } from "../util/event_emitter.ts"
 import {
@@ -28,6 +29,7 @@ export interface ToolExecutorConfig {
   defaultTimeoutMs?: number
   /** Safety kernel — scans stringified input + output. Per ADR-022 non-bypassable. */
   moderator?: Moderator
+  kernel?: SafetyKernel
 }
 
 export class ToolExecutor {
@@ -53,6 +55,10 @@ export class ToolExecutor {
       this.fail(id, err, performance.now() - started)
       await this.writeAudit("tool.invoke.fail", ctx, id, { code: err.code })
       throw err
+    }
+
+    if (this.cfg.kernel) {
+      return this.invokeWithKernel(tool, id, input, ctx, started)
     }
 
     const decision = await this.cfg.permission.check(tool, input, ctx)
@@ -125,6 +131,99 @@ export class ToolExecutor {
     }
   }
 
+  private async invokeWithKernel<O>(
+    tool: Tool<unknown, O>,
+    id: string,
+    input: unknown,
+    ctx: ToolInvocationCtx,
+    started: number,
+  ): Promise<ToolResult<O>> {
+    const timeoutMs = tool.timeoutMs ?? this.cfg.defaultTimeoutMs ?? 30_000
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    let output: O | undefined
+
+    try {
+      for await (const _event of this.cfg.kernel!.invoke(
+        {
+          actor: ctx.agentId ?? "anonymous",
+          sessionId: ctx.sessionId,
+          taskId: ctx.correlationId,
+          correlationId: ctx.correlationId,
+        },
+        {
+          kind: "tool",
+          tool: id,
+          action: "tool.invoke",
+          inputText: stringifyForKernel(input),
+          input: isRecord(input) ? input : {},
+          target: id,
+          execute: () => this.executeTool(tool, input, ctx, controller, timeoutMs, (value) => {
+            output = value
+          }),
+        },
+      )) {
+        // Kernel exists for permission/safety/audit gating; ToolExecutor only returns final result.
+      }
+
+      clearTimeout(timer)
+      const durationMs = performance.now() - started
+      this.events.emit("tool_completed", { toolId: id, durationMs, output })
+      return { toolId: id, output: output as O, durationMs }
+    } catch (cause) {
+      clearTimeout(timer)
+      controller.abort()
+      const durationMs = performance.now() - started
+      if (cause instanceof PermissionDeniedError) {
+        const err = new ToolPermissionError(id, ctx.agentId ?? "anonymous", cause.reason ?? "deny")
+        this.fail(id, err, durationMs)
+        throw err
+      }
+      if (cause instanceof SafetyBlockedError) {
+        const err = new ToolSafetyError(
+          id,
+          cause.mode,
+          cause.flags.map((flag) => flag.category),
+        )
+        this.fail(id, err, durationMs)
+        throw err
+      }
+      if (cause instanceof ToolTimeoutError) {
+        this.fail(id, cause, durationMs)
+        throw cause
+      }
+      if (cause instanceof ToolExecError) {
+        this.fail(id, cause, durationMs)
+        throw cause
+      }
+      const err = new ToolExecError(id, cause)
+      this.fail(id, err, durationMs)
+      throw err
+    }
+  }
+
+  private async *executeTool<O>(
+    tool: Tool<unknown, O>,
+    input: unknown,
+    ctx: ToolInvocationCtx,
+    controller: AbortController,
+    timeoutMs: number,
+    capture: (output: O) => void,
+  ) {
+    const output = await Promise.race([
+      tool.handler(input, ctx, controller.signal),
+      new Promise<never>((_res, rej) => {
+        controller.signal.addEventListener("abort", () => {
+          rej(new ToolTimeoutError(tool.id, timeoutMs))
+        })
+      }),
+    ])
+    capture(output)
+    const text = stringifyForKernel(output)
+    if (text) yield { type: "text" as const, content: text }
+    yield { type: "completed" as const }
+  }
+
   private fail(toolId: string, err: { code: ToolErrorCode; message: string }, durationMs: number) {
     this.events.emit("tool_failed", {
       toolId,
@@ -152,4 +251,19 @@ export class ToolExecutor {
       meta,
     })
   }
+}
+
+function stringifyForKernel(value: unknown): string {
+  if (typeof value === "string") return value
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  if (!value) return ""
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
 }

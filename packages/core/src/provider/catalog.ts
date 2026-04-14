@@ -1,3 +1,5 @@
+import type { KernelContext, SafetyKernel } from "../kernel/index.ts"
+
 export interface GenerateOpts {
   prompt: string
   model?: string
@@ -57,7 +59,12 @@ export class ProviderError extends Error {
 }
 
 export class ProviderCatalog {
+  private readonly kernel?: SafetyKernel
   private providers = new Map<string, ProviderDescriptor>()
+
+  constructor(cfg: { kernel?: SafetyKernel } = {}) {
+    this.kernel = cfg.kernel
+  }
 
   register(descriptor: ProviderDescriptor): void {
     if (this.providers.has(descriptor.id)) {
@@ -76,12 +83,15 @@ export class ProviderCatalog {
     return [...this.providers.values()]
   }
 
-  async generate(id: string, opts: GenerateOpts): Promise<string> {
-    return this.get(id).generate(opts)
+  async generate(id: string, opts: GenerateOpts, ctx?: KernelContext): Promise<string> {
+    return (await this.generateWithUsage(id, opts, ctx)).text
   }
 
-  async generateWithUsage(id: string, opts: GenerateOpts): Promise<GenerateResult> {
+  async generateWithUsage(id: string, opts: GenerateOpts, ctx?: KernelContext): Promise<GenerateResult> {
     const d = this.get(id)
+    if (this.kernel) {
+      return this.generateViaKernel(d, opts, ctx)
+    }
     if (d.generateWithUsage) return d.generateWithUsage(opts)
     // Legacy adapter — return zeroed usage (caller can detect absence)
     const text = await d.generate(opts)
@@ -90,5 +100,45 @@ export class ProviderCatalog {
       model: opts.model ?? d.defaultModel,
       usage: { input_tokens: 0, output_tokens: 0 },
     }
+  }
+
+  private async generateViaKernel(
+    descriptor: ProviderDescriptor,
+    opts: GenerateOpts,
+    ctx?: KernelContext,
+  ): Promise<GenerateResult> {
+    let result: GenerateResult | null = null
+    for await (const _event of this.kernel!.invoke(
+      ctx ?? { actor: `provider:${descriptor.id}` },
+      {
+        kind: "provider",
+        tool: descriptor.id,
+        action: "provider.generate",
+        inputText: [opts.system, opts.prompt].filter(Boolean).join("\n\n"),
+        input: {
+          prompt: opts.prompt,
+          model: opts.model,
+          maxTokens: opts.maxTokens,
+          temperature: opts.temperature,
+          system: opts.system,
+          cacheSystem: opts.cacheSystem,
+        },
+        target: descriptor.baseUrl,
+        execute: async function* () {
+          result = descriptor.generateWithUsage
+            ? await descriptor.generateWithUsage(opts)
+            : {
+                text: await descriptor.generate(opts),
+                model: opts.model ?? descriptor.defaultModel,
+                usage: { input_tokens: 0, output_tokens: 0 },
+              }
+          if (result.text) yield { type: "text" as const, content: result.text }
+          yield { type: "completed" as const }
+        },
+      },
+    )) {
+      // Kernel handles permission/safety/audit; ProviderCatalog returns structured result only.
+    }
+    return result ?? { text: "", model: opts.model ?? descriptor.defaultModel, usage: { input_tokens: 0, output_tokens: 0 } }
   }
 }

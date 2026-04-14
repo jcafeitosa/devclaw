@@ -8,7 +8,11 @@ import type {
   BridgeRequest,
   Capabilities,
 } from "../../src/bridge/types.ts"
+import { MemoryAuditSink } from "../../src/audit/sink.ts"
+import { SafetyKernel } from "../../src/kernel/index.ts"
+import { PermissionEvaluator } from "../../src/permission/evaluator.ts"
 import { ProviderCatalog } from "../../src/provider/catalog.ts"
+import { createDefaultModerator } from "../../src/safety/moderator.ts"
 import { RegexPatternModerator } from "../../src/safety/moderator.ts"
 
 function mock(cli: string, opts: Partial<Bridge> = {}): Bridge {
@@ -163,5 +167,35 @@ describe("FallbackStrategy", () => {
       ),
     ).toBe(true)
     expect(events.some((event) => event.type === "text")).toBe(false)
+  })
+
+  test("routes bridge execution through kernel when configured", async () => {
+    const registry = new BridgeRegistry()
+    let called = false
+    registry.register(
+      mock("claude", {
+        execute() {
+          called = true
+          return (async function* () {
+            yield { type: "text", content: "from claude" } as BridgeEvent
+            yield { type: "completed" } as BridgeEvent
+          })()
+        },
+      }),
+    )
+    const f = new FallbackStrategy({
+      registry,
+      catalog: new ProviderCatalog(),
+      kernel: new SafetyKernel({
+        permission: new PermissionEvaluator({
+          rules: [{ tool: "claude", action: "bridge.execute", decision: "deny", reason: "blocked" }],
+          defaultDecision: "allow",
+        }),
+        safety: createDefaultModerator(),
+        audit: new MemoryAuditSink(),
+      }),
+    })
+    await expect(collect(f.execute(req))).rejects.toThrow(/permission denied/i)
+    expect(called).toBe(false)
   })
 })
