@@ -1,11 +1,15 @@
 export * from "./anthropic_adapter.ts"
 export * from "./catalog.ts"
+export * from "./google_adapter.ts"
+export * from "./ollama_adapter.ts"
 export * from "./openai_adapter.ts"
 
 import type { AuthStore } from "../auth/store.ts"
 import { isApiAuth } from "../auth/types.ts"
 import { makeAnthropicAdapter } from "./anthropic_adapter.ts"
 import { ProviderCatalog } from "./catalog.ts"
+import { makeGoogleAdapter } from "./google_adapter.ts"
+import { makeOllamaAdapter } from "./ollama_adapter.ts"
 import { makeOpenAIAdapter } from "./openai_adapter.ts"
 
 export interface RegisterBuiltinsOpts {
@@ -25,6 +29,29 @@ export async function registerBuiltins(opts: RegisterBuiltinsOpts): Promise<Prov
   if (openai && isApiAuth(openai)) {
     catalog.register(makeOpenAIAdapter({ apiKey: openai.key }))
   }
+
+  const google = (await opts.store.load("google")) ?? (await opts.store.load("gemini"))
+  if (google && isApiAuth(google)) {
+    catalog.register(makeGoogleAdapter({ apiKey: google.key }))
+  }
+
+  const ollama = await opts.store.load("ollama")
+  if (ollama && isApiAuth(ollama)) {
+    catalog.register(
+      makeOllamaAdapter({
+        apiKey: ollama.key,
+        baseUrl: ollama.meta?.baseUrl ?? process.env.OLLAMA_BASE_URL,
+      }),
+    )
+    return catalog
+  }
+
+  catalog.register(
+    makeOllamaAdapter({
+      baseUrl: process.env.OLLAMA_BASE_URL,
+      apiKey: process.env.OLLAMA_API_KEY,
+    }),
+  )
 
   return catalog
 }
