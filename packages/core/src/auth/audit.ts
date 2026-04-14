@@ -10,6 +10,11 @@ export type AuditEventName =
   | "auth.refresh.begin"
   | "auth.refresh.success"
   | "auth.refresh.fail"
+  | "tool.invoke.ok"
+  | "tool.invoke.fail"
+  | "tool.register"
+  | "tool.replace"
+  | "tool.remove"
 
 export interface AuditEvent {
   event: AuditEventName
