@@ -14,6 +14,13 @@ export class RuntimeTimeoutError extends RuntimeError {
   }
 }
 
+export class WorktreeProvisionError extends RuntimeError {
+  constructor(reason: string) {
+    super(`failed to provision worktree: ${reason}`)
+    this.name = "WorktreeProvisionError"
+  }
+}
+
 export class RuntimeNotFoundError extends RuntimeError {
   constructor(name: string) {
     super(`no runtime registered as '${name}'`)
