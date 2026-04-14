@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./auth": "./src/auth/index.ts",
     "./oauth": "./src/oauth/index.ts",
+    "./provider": "./src/provider/index.ts",
     "./queue": "./src/queue/index.ts"
   },
   "scripts": {
