@@ -31,6 +31,7 @@
     "./reflection": "./src/reflection/index.ts",
     "./research": "./src/research/index.ts",
     "./runtime": "./src/runtime/index.ts",
+    "./safety": "./src/safety/index.ts",
     "./skill": "./src/skill/index.ts",
     "./slash": "./src/slash/index.ts",
     "./subagent": "./src/subagent/index.ts",
