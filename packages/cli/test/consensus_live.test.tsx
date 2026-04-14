@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import { renderToString } from "ink"
 import { BudgetEnforcer } from "@devclaw/core/cost"
+import { renderToString } from "ink"
 
 import { type ConsensusLiveSnapshot, ConsensusLiveView } from "../src/commands/consensus_live.tsx"
 

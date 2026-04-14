@@ -2,8 +2,8 @@ export * from "./anthropic_adapter.ts"
 export * from "./catalog.ts"
 export * from "./google_adapter.ts"
 export * from "./ollama_adapter.ts"
-export * from "./openrouter_adapter.ts"
 export * from "./openai_adapter.ts"
+export * from "./openrouter_adapter.ts"
 
 import type { AuthStore } from "../auth/store.ts"
 import { isApiAuth } from "../auth/types.ts"
@@ -11,8 +11,8 @@ import { makeAnthropicAdapter } from "./anthropic_adapter.ts"
 import { ProviderCatalog } from "./catalog.ts"
 import { makeGoogleAdapter } from "./google_adapter.ts"
 import { makeOllamaAdapter } from "./ollama_adapter.ts"
-import { makeOpenRouterAdapter } from "./openrouter_adapter.ts"
 import { makeOpenAIAdapter } from "./openai_adapter.ts"
+import { makeOpenRouterAdapter } from "./openrouter_adapter.ts"
 
 export interface RegisterBuiltinsOpts {
   catalog?: ProviderCatalog

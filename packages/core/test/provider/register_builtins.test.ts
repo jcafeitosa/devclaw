@@ -68,6 +68,11 @@ describe("registerBuiltins", () => {
     const store = new FilesystemAuthStore({ dir, passphrase: "pw" })
     await store.save("openrouter", { type: "api", key: "sk-router" })
     const catalog = await registerBuiltins({ store })
-    expect(catalog.list().map((d) => d.id).sort()).toEqual(["ollama", "openrouter"])
+    expect(
+      catalog
+        .list()
+        .map((d) => d.id)
+        .sort(),
+    ).toEqual(["ollama", "openrouter"])
   })
 })
