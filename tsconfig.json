@@ -23,5 +23,6 @@
       "@devclaw/core/*": ["./packages/core/src/*"]
     }
   },
-  "include": ["packages/*/src/**/*", "packages/*/test/**/*"]
+  "include": ["packages/*/src/**/*", "packages/*/test/**/*"],
+  "exclude": ["packages/docs-site/**"]
 }

@@ -34,3 +34,5 @@ jobs:
       - run: bun run lint
       - run: bun run typecheck
       - run: bun test
+      - name: Build docs site
+        run: bun run --cwd packages/docs-site build
