@@ -1,4 +1,5 @@
 import { EventEmitter } from "../util/event_emitter.ts"
+import type { ACPPermissionRequestStore, ACPPendingPermission } from "./acp_permission_store.ts"
 import type { ACPSessionStore } from "./acp_session_store.ts"
 import type {
   ACPCapabilities,
@@ -66,6 +67,7 @@ export interface ACPServerConfig {
   handlers?: ACPServerHandlers
   send?: (raw: string) => void | Promise<void>
   sessionStore?: ACPSessionStore
+  permissionStore?: ACPPermissionRequestStore
 }
 
 interface InflightPrompt {
@@ -82,12 +84,13 @@ export class ACPServer {
   readonly capabilities: ACPCapabilities
   private readonly handlers: ACPServerHandlers
   private readonly sessionStore?: ACPSessionStore
+  private readonly permissionStore?: ACPPermissionRequestStore
   private readonly sessions = new Map<string, ACPSessionInfo>()
   private readonly inflight = new Map<string, InflightPrompt>()
   private readonly pendingServerReqs = new Map<number, PendingServerRequest>()
   private readonly agentName: string
   private readonly agentVersion: string
-  private readonly send?: (raw: string) => void | Promise<void>
+  private send?: (raw: string) => void | Promise<void>
   private initialized = false
   private nextServerReqId = 1
 
@@ -98,6 +101,11 @@ export class ACPServer {
     this.handlers = cfg.handlers ?? {}
     this.send = cfg.send
     this.sessionStore = cfg.sessionStore
+    this.permissionStore = cfg.permissionStore
+  }
+
+  setSend(send?: (raw: string) => void | Promise<void>): void {
+    this.send = send
   }
 
   async handle(raw: string): Promise<string | null> {
@@ -142,6 +150,18 @@ export class ACPServer {
 
   listSessions(): ACPSessionInfo[] {
     return [...this.sessions.values()]
+  }
+
+  async replayPendingPermissions(sessionId?: string): Promise<void> {
+    if (!this.send || !this.permissionStore) return
+    const items = await this.permissionStore.list({ sessionId })
+    for (const item of items) {
+      const msg = makeRequest(item.requestId, "session/permission/request", {
+        sessionId: item.sessionId,
+        ...item.request,
+      })
+      await this.send(JSON.stringify(msg))
+    }
   }
 
   private async dispatch(method: string, params: unknown): Promise<unknown> {
@@ -212,6 +232,7 @@ export class ACPServer {
     const persisted = await this.sessionStore?.get(params.sessionId)
     if (persisted) {
       this.sessions.set(persisted.id, persisted)
+      await this.replayPendingPermissions(persisted.id)
       return persisted
     }
     throw JsonRpcError.invalidParams(`session '${params.sessionId}' not found`)
@@ -287,9 +308,17 @@ export class ACPServer {
         resolve: resolve as (v: unknown) => void,
         reject,
       })
+      const pending: ACPPendingPermission = {
+        requestId: id,
+        sessionId,
+        request: { ...req, input: req.input },
+        createdAt: Date.now(),
+      }
+      void this.permissionStore?.save(pending)
       const msg = makeRequest(id, "session/permission/request", { sessionId, ...req })
       Promise.resolve(this.send!(JSON.stringify(msg))).catch((err) => {
         this.pendingServerReqs.delete(id)
+        void this.permissionStore?.delete(id)
         reject(err)
       })
     })
@@ -303,6 +332,7 @@ export class ACPServer {
     }
     if (typeof r.id !== "number") return
     const pending = this.pendingServerReqs.get(r.id)
+    void this.permissionStore?.delete(r.id)
     if (!pending) return
     this.pendingServerReqs.delete(r.id)
     if (r.error) {
