@@ -22,6 +22,33 @@ Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas found
 
 ---
 
+## 🧭 Documentation / vault alignment backlog
+
+These items track the remaining gaps between the current repo docs and the
+Obsidian source model. They are not feature work; they are spec alignment work.
+
+| ID | Gap | Why it matters | Canonical refs | Status |
+|---|---|---|---|---|
+| **D-10** | Formal gateway contract | Host lifecycle, supervision, connection ownership, handshake and reconnect semantics are part of the vault model but not yet fully mirrored in repo docs | `vault://53_gateway_daemon/`, `docs/design/daemon.md` | 🟡 |
+| **D-11** | Workspace contract + metadata roots | ClawCode-style root merge/discovery order needs to be explicit so "workspace" is not just cwd | `vault://06_agent_os/`, `vault://21_heritage/`, `packages/docs-site/src/content/docs/guides/vault-alignment.md` | 🟡 |
+| **D-12** | Liveness model spec | The repo now has prose, but the vault model should be expressed as one coherent operator story across agent/os/gateway/work/comm/learning | `packages/docs-site/src/content/docs/guides/agent-liveness.md` | 🟡 |
+| **D-13** | Work + comm + subagent integration spec | Need one cross-cutting doc for how work states, channels, and subagents cooperate to keep the agent active without losing isolation | `docs/design/{work,comm,subagents}.md` | 🟡 |
+| **D-14** | Vault-aligned doc index | New guide pages should be discoverable from the home page and architecture flow without knowing vault names | `packages/docs-site/src/content/docs/index.md`, `packages/docs-site/src/content/docs/guides/architecture.md` | ✅ |
+| **D-15** | Routine scheduler / wakeup contract | Paperclip's recurring routines, trigger kinds, coalescing, and catch-up policy are a strong model for proactive agent motion | `packages/docs-site/src/content/docs/guides/agent-liveness.md`, `docs/design/work.md` | 🟡 |
+| **D-16** | Issue checkout + stale-lock recovery | Atomic checkout, checkout-run ownership, adoption of stale locks, and release rules make execution state much more resilient | `docs/design/work.md`, `docs/design/governance.md` | 🟡 |
+| **D-17** | Run/activity ledger spec | A unified activity log for runs, wakeups, and mutations would make agents easier to audit and debug over time | `docs/design/daemon.md`, `packages/docs-site/src/content/docs/guides/architecture.md` | 🟡 |
+| **D-18** | Execution workspace/runtime control spec | Managed checkouts, workspace runtime services, and per-run runtime control are not yet first-class in the repo docs | `docs/design/daemon.md`, `docs/design/work.md`, `packages/docs-site/src/content/docs/reference/packages.md` | 🟡 |
+| **D-19** | Project/workspace/goals contract | Paperclip's goals/projects/workspaces model is stricter than our current prose and should be mapped explicitly to Devclaw work structure | `docs/design/governance.md`, `docs/design/team.md`, `packages/docs-site/src/content/docs/reference/protocols.md` | 🟡 |
+
+Acceptance criteria for this backlog:
+
+- every gap above has a corresponding repo doc page or section
+- the repo docs reference the same vocabulary as the vault
+- new implementation work can point to a single canonical doc set
+- no second taxonomy is introduced in the repo
+
+---
+
 ## 🔴 Sprint 1 (próximas 2 semanas) — BLOCKERS
 
 | ID | Task | Why | Files | Status |

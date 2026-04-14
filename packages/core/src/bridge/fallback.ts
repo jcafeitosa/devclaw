@@ -3,6 +3,7 @@ import type { SafetyKernel } from "../kernel/index.ts"
 import type { ProviderCatalog } from "../provider/catalog.ts"
 import { createDefaultModerator } from "../safety/moderator.ts"
 import type { Moderator } from "../safety/types.ts"
+import { type BridgeOutputCache, bridgeCacheKey } from "./cache.ts"
 import type { BridgeRegistry } from "./registry.ts"
 import type { Bridge, BridgeEvent, BridgeRequest } from "./types.ts"
 
@@ -14,6 +15,8 @@ export interface FallbackStrategyConfig {
   moderator?: Moderator
   kernel?: SafetyKernel
   budget?: BudgetEnforcer
+  cache?: BridgeOutputCache
+  gitHead?: (cwd: string) => Promise<string>
 }
 
 export class FallbackStrategy {
@@ -95,10 +98,28 @@ export class FallbackStrategy {
           return
         }
 
+        const cacheKey = await self.cacheKey(req)
+        if (cacheKey && self.cfg.cache) {
+          const cached = await self.cfg.cache.get(cacheKey)
+          if (cached) {
+            for (const event of cached) yield event
+            return
+          }
+        }
+
         const bridge = await self.pickBridge(req)
         if (bridge) {
           self.chargeBudget(req, bridge.estimateCost(req).costUsd)
-          for await (const event of bridge.execute(req)) yield event
+          const buffered: BridgeEvent[] = []
+          let errored = false
+          for await (const event of bridge.execute(req)) {
+            buffered.push(event)
+            if (event.type === "error") errored = true
+            yield event
+          }
+          if (cacheKey && self.cfg.cache && !errored) {
+            await self.cfg.cache.set(cacheKey, buffered)
+          }
           return
         }
         if (!self.cfg.fallbackProviderId) {
@@ -135,6 +156,13 @@ export class FallbackStrategy {
     const preferred = await this.cfg.registry.select(req)
     if (preferred) return preferred
     return this.cfg.registry.selectByCapability(req, () => true)
+  }
+
+  private async cacheKey(req: BridgeRequest): Promise<string | null> {
+    if (!this.cfg.cache || !this.cfg.gitHead) return null
+    const head = await this.cfg.gitHead(req.cwd)
+    if (!head) return null
+    return bridgeCacheKey(req, head)
   }
 
   private chargeBudget(req: BridgeRequest, plannedUsd: number): void {
