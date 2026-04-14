@@ -13,6 +13,7 @@
     "./comm": "./src/comm/index.ts",
     "./context": "./src/context/index.ts",
     "./correction": "./src/correction/index.ts",
+    "./cost": "./src/cost/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./governance": "./src/governance/index.ts",
     "./hook": "./src/hook/index.ts",
