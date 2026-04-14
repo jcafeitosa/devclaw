@@ -20,6 +20,7 @@
     "./lsp": "./src/lsp/index.ts",
     "./memory": "./src/memory/index.ts",
     "./node": "./src/node/index.ts",
+    "./observability": "./src/observability/index.ts",
     "./oauth": "./src/oauth/index.ts",
     "./prompt": "./src/prompt/index.ts",
     "./protocol": "./src/protocol/index.ts",
