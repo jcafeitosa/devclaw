@@ -1,6 +1,12 @@
 import type { AuthInfo, AuthStore } from "@devclaw/core/auth"
 import type { BridgeRegistry, FallbackStrategy } from "@devclaw/core/bridge"
 import { discover } from "@devclaw/core/discovery"
+import {
+  ACPServer,
+  type BuiltinToolBackends,
+  MCPServer,
+  registerBuiltinTools,
+} from "@devclaw/core/protocol"
 import type { ProviderCatalog } from "@devclaw/core/provider"
 import { Elysia, t } from "elysia"
 
@@ -16,11 +22,15 @@ export interface DaemonRuntime {
 export interface AppConfig {
   runtime: DaemonRuntime
   version?: string
+  mcpBackends?: BuiltinToolBackends
 }
 
 export function createApp(cfg: AppConfig) {
   const version = cfg.version ?? VERSION
   const rt = cfg.runtime
+  const acp = new ACPServer({ agentName: "devclaw", agentVersion: version })
+  const mcp = new MCPServer({ serverName: "devclaw-mcp", serverVersion: version })
+  registerBuiltinTools(mcp, cfg.mcpBackends ?? {})
 
   return new Elysia()
     .get("/health", () => ({ status: "ok" }))
@@ -116,6 +126,20 @@ export function createApp(cfg: AppConfig) {
         }),
       },
     )
+    .ws("/acp", {
+      async message(ws, msg) {
+        const raw = typeof msg === "string" ? msg : JSON.stringify(msg)
+        const reply = await acp.handle(raw)
+        if (reply) ws.send(reply)
+      },
+    })
+    .ws("/mcp", {
+      async message(ws, msg) {
+        const raw = typeof msg === "string" ? msg : JSON.stringify(msg)
+        const reply = await mcp.handle(raw)
+        if (reply) ws.send(reply)
+      },
+    })
     .ws("/ws", {
       body: t.Object({
         channel: t.Union([t.Literal("invoke"), t.Literal("ping")]),
