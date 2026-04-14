@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto"
 import type { AuthInfo, AuthStore } from "@devclaw/core/auth"
 import type { BridgeRegistry, FallbackStrategy } from "@devclaw/core/bridge"
 import { discover } from "@devclaw/core/discovery"
@@ -8,6 +9,8 @@ import {
   registerBuiltinTools,
 } from "@devclaw/core/protocol"
 import type { ProviderCatalog } from "@devclaw/core/provider"
+import { bearer } from "@elysiajs/bearer"
+import { jwt } from "@elysiajs/jwt"
 import { Elysia, t } from "elysia"
 
 export const VERSION = "0.0.0"
@@ -23,6 +26,43 @@ export interface AppConfig {
   runtime: DaemonRuntime
   version?: string
   mcpBackends?: BuiltinToolBackends
+  auth?: {
+    jwtSecret?: string
+    /**
+     * When true, loopback requests (127.0.0.1 / localhost / ::1) ALSO require
+     * a valid bearer token. Closes CVSS 7.3 local-process attack vector (S-02).
+     * Defaults to false for backward compat; bin.ts enables it in production.
+     */
+    requireFromLoopback?: boolean
+  }
+}
+
+const DEFAULT_JWT_SECRET = randomBytes(32).toString("hex")
+
+function isLoopback(req: Request): boolean {
+  const url = new URL(req.url)
+  if (url.hostname === "127.0.0.1" || url.hostname === "localhost" || url.hostname === "::1") {
+    return true
+  }
+  return false
+}
+
+function authSecret(cfg: AppConfig): string {
+  return cfg.auth?.jwtSecret ?? process.env.DEVCLAW_DAEMON_JWT_SECRET ?? DEFAULT_JWT_SECRET
+}
+
+export async function issueAuthToken(secret: string, claims: Record<string, unknown> = {}) {
+  const signer = new Elysia().use(
+    jwt({
+      name: "auth",
+      secret,
+    }),
+  )
+
+  return signer.decorator.auth.sign({
+    scope: "daemon",
+    ...claims,
+  })
 }
 
 export function createApp(cfg: AppConfig) {
@@ -31,8 +71,33 @@ export function createApp(cfg: AppConfig) {
   const acp = new ACPServer({ agentName: "devclaw", agentVersion: version })
   const mcp = new MCPServer({ serverName: "devclaw-mcp", serverVersion: version })
   registerBuiltinTools(mcp, cfg.mcpBackends ?? {})
+  const secret = authSecret(cfg)
+  const requireFromLoopback = cfg.auth?.requireFromLoopback ?? false
 
   return new Elysia()
+    .use(bearer())
+    .use(
+      jwt({
+        name: "auth",
+        secret,
+      }),
+    )
+    .onBeforeHandle(async ({ auth, bearer, request, set }) => {
+      if (request.method === "GET" && new URL(request.url).pathname === "/health") return
+      if (!requireFromLoopback && isLoopback(request)) return
+      if (!bearer) {
+        set.status = 401
+        set.headers["www-authenticate"] = 'Bearer realm="devclaw", error="invalid_request"'
+        return { error: "missing bearer token" }
+      }
+
+      const claims = await auth.verify(bearer)
+      if (!claims) {
+        set.status = 401
+        set.headers["www-authenticate"] = 'Bearer realm="devclaw", error="invalid_token"'
+        return { error: "invalid bearer token" }
+      }
+    })
     .get("/health", () => ({ status: "ok" }))
     .get("/version", () => ({ version }))
     .get(
