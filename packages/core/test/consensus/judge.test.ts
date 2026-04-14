@@ -122,7 +122,9 @@ describe("makeLLMJudgeScorer", () => {
       maxTokens: 8,
     })
     await score(scorer, "claude", "x")
-    expect(capturedOpts?.model).toBe("judge-pro")
-    expect(capturedOpts?.maxTokens).toBe(8)
+    expect(capturedOpts).not.toBeNull()
+    const opts = capturedOpts as unknown as GenerateOpts
+    expect(opts.model).toBe("judge-pro")
+    expect(opts.maxTokens).toBe(8)
   })
 })

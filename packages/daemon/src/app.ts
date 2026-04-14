@@ -93,7 +93,7 @@ export interface ShutdownControls {
   drain(opts?: { timeoutMs?: number; pollMs?: number }): Promise<void>
 }
 
-export type DaemonApp = ReturnType<typeof buildElysiaApp> & ShutdownControls
+export type DaemonApp = Elysia & ShutdownControls
 
 function buildElysiaApp(cfg: AppConfig) {
   const version = cfg.version ?? VERSION
@@ -362,5 +362,5 @@ export function createApp(cfg: AppConfig): DaemonApp {
     },
   }
 
-  return Object.assign(app, controls) as DaemonApp
+  return Object.assign(app, controls) as unknown as DaemonApp
 }
