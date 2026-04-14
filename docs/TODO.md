@@ -55,12 +55,14 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 | Self-Correction loop | `43_self_correction/` | ✅ |
 | Advanced CPE (skills integration) | `06_agent_os/skill_system` | ✅ |
 
-## Phase 4 — Learning
+## Phase 4 — Learning ✅
 
 | Module | Vault | Status |
 |---|---|---|
-| Experience Engine / ECAP-TECAP | `07_learning/` | ⬜ |
-| Knowledge Lifecycle | `07_learning/knowledge_lifecycle` | ⬜ |
+| Experience Engine / ECAP-TECAP | `07_learning/` | ✅ |
+| Knowledge Lifecycle | `07_learning/knowledge_lifecycle` | ✅ |
+| Policy Engine | `07_learning/policy_engine` | ✅ |
+| Skill Evolution | `07_learning/skill_evolution` | ✅ |
 
 ## Phase 5 — Governance + Research
 
