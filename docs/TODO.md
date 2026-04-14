@@ -89,7 +89,7 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 | ACP (JSON-RPC bidirectional) | `57_acp_protocol/` · ADR-016 | ✅ |
 | MCP context engine (expose core) | `56_context_engine_mcp/` · ADR-015 | ✅ |
 | LSP integration | `58_lsp_integration/` | 🟡 framing + client + registry |
-| PTY/Terminal | `59_pty_terminal/` | ⬜ |
+| PTY/Terminal | `59_pty_terminal/` | 🟡 session + registry (no raw PTY) |
 
 ## Phase 8 — Advanced
 

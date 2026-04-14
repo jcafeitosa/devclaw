@@ -32,6 +32,7 @@
     "./slash": "./src/slash/index.ts",
     "./subagent": "./src/subagent/index.ts",
     "./team": "./src/team/index.ts",
+    "./terminal": "./src/terminal/index.ts",
     "./tool": "./src/tool/index.ts",
     "./work": "./src/work/index.ts"
   },
