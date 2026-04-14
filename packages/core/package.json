@@ -21,6 +21,7 @@
     "./discovery": "./src/discovery/index.ts",
     "./governance": "./src/governance/index.ts",
     "./hook": "./src/hook/index.ts",
+    "./kernel": "./src/kernel/index.ts",
     "./learning": "./src/learning/index.ts",
     "./lsp": "./src/lsp/index.ts",
     "./memory": "./src/memory/index.ts",
