@@ -10,6 +10,33 @@
 
 Stage: **pre-alpha, Phase 1 implementation** (per `vault://23_roadmap/phase_1_foundation`).
 
+## Development workflow (MANDATORY — no exceptions)
+
+> **Every production change in this repo follows SDD + TDD. Always. Full stop.**
+> Per ADR-014. Violating this rule is grounds to revert the commit.
+
+**SDD (Spec-Driven Development)** — design before code:
+1. Read the vault spec (`vault://...`) for the module you're touching.
+2. If the spec is ambiguous or missing, brainstorm (9-step Socratic) and update the vault **before** coding.
+3. Write a plan with 2–5min tasks. No implementation without an approved plan.
+4. No architectural decision without an ADR in `vault://18_decisions/`.
+
+**TDD (Test-Driven Development)** — RED → GREEN → REFACTOR, strict:
+1. **RED**: write the failing test first. Run it. See it fail (`✗ FAIL`). Commit the failing test if it clarifies intent.
+2. **GREEN**: write the **minimal** production code to make the test pass. Run it. See `✓ PASS`.
+3. **REFACTOR**: clean up while keeping the test green.
+4. **Commit granularly** — one Conventional Commit per RED→GREEN cycle.
+
+**Hard rules (non-negotiable):**
+- ❌ No production code before a failing test exists and has been observed failing.
+- ❌ No test written *after* the code it covers (that's not TDD — that's validation theater).
+- ❌ No "temporary" bypass, stub, or `.skip` to go green faster.
+- ❌ No `try/catch` to swallow a test failure.
+- ✅ Every PR lists the RED commit(s) + GREEN commit(s).
+- ✅ `bun test` must be green before declaring any task ✅.
+
+Full methodology in `## Methodology (mandatory per ADR-014)` below.
+
 ## Spec
 
 Complete documentation (~543 files) in Obsidian vault. **Always consult before architectural decisions.**
@@ -458,9 +485,11 @@ devclaw/
 ## Current status + what to do next
 
 **Completed:** Phase 1-5 + Phase 7 protocols + Phase 8 partial (37 core modules, 266 src, 1110 tests, 1945 assertions, all passing).
-**Current:** Hardening + integration gaps (9 tasks: H-01 to H-09) before Phase 6 UI.
+**Current:** Panel-consolidated roadmap (2026-04-14) — Sprint 1 blockers: **A-01** (ADR-020 adapter ports), **A-02** (ADR-022 safety kernel), **S-01/S-02/S-04** (3 CVEs), **C-01** (prompt cache + usage capture = -40% custo).
 **Milestones reached:** M1 (end-to-end task), M2 (Codex OAuth), M3 (multi-agent).
-**Key gaps:** Zero database (all in-memory), only 2 provider adapters, safety not wired into pipeline.
+**Key gaps identified by panel:** Zero DB (H-01 needs A-01 first), safety exists but NEVER called (CVSS 8.1 exploitable), daemon binds 0.0.0.0 sem auth (CVSS 7.3), `anthropic_adapter.generate` descarta `usage` → cost telemetry é fantasma, context retrieval keyword-only apesar de ter embeddings, apenas 4 de 50+ slash commands definidos (e nenhum wired ao CLI).
+
+**Single bet:** fundar os 37 módulos num loop cross-CLI consensus demoável (ver `docs/TODO.md` topo).
 
 ### Task board: `docs/TODO.md`
 
@@ -523,8 +552,12 @@ When multiple agents run in parallel (Claude Code + Codex + Aider):
 | **017** | **OpenCode mechanism wholesale** | **Provider connection foundation** |
 | 018 | Astro frontend convention | Astro when Bun/Elysia |
 | 019 | Bun-native Redis Streams | Queue implementation |
+| **020** | **Storage/Vector/Queue/Blob adapter ports** | **Destrava H-01 sem lock-in (2026-04-14 panel)** |
+| **022** | **Safety Kernel: non-bypassable pipeline** | **Fecha CVSS 8.1/7.5/7.3 (2026-04-14 panel)** |
 
-Foundational (check all decisions against): **ADR-010**, **ADR-014**, **ADR-017**.
+> ADR-021 (module tiering) proposto mas deferido para pós-v0.1.
+
+Foundational (check all decisions against): **ADR-010**, **ADR-014**, **ADR-017**, **ADR-020**, **ADR-022**.
 
 ---
 
@@ -540,20 +573,21 @@ Foundational (check all decisions against): **ADR-010**, **ADR-014**, **ADR-017*
 
 ## Critical reminders for AI agents
 
-1. **Read vault first** — never invent architectural decisions
-2. **Bun native FIRST** — check `Bun.*` API before `bun add`
-3. **TDD strict** — test fails first, watch fail, then code
-4. **No `else`** — early returns only
-5. **Try-catch only at I/O boundaries** — typed error classes, never catch-and-ignore
-6. **Single-word names** — `cfg` not `configuration`
-7. **Bun APIs** — `Bun.file()` not `fs.readFile`
-8. **Snake_case in DB** — Drizzle convention
-9. **Update vault when finding spec ambiguity** — keep spec in sync
-10. **Conventional commits** — granular per RED-GREEN cycle
-11. **Verify before declaring done** — run actual tests
-12. **Astro: zero JS by default** — only ship JS via `client:*` directives
-13. **Check module→vault mapping above** — find spec before implementing
-14. **Don't create planned packages** (tui, admin-ui, shared, sdk-ts) without ADR
+1. **SDD first, TDD always** — see `## Development workflow (MANDATORY)` at the top. No code without spec; no code before failing test.
+2. **Read vault first** — never invent architectural decisions
+3. **Bun native FIRST** — check `Bun.*` API before `bun add`
+4. **RED → GREEN → REFACTOR** — commit per cycle; no test-after-the-fact
+5. **No `else`** — early returns only
+6. **Try-catch only at I/O boundaries** — typed error classes, never catch-and-ignore
+7. **Single-word names** — `cfg` not `configuration`
+8. **Bun APIs** — `Bun.file()` not `fs.readFile`
+9. **Snake_case in DB** — Drizzle convention
+10. **Update vault when finding spec ambiguity** — keep spec in sync
+11. **Conventional commits** — granular per RED-GREEN cycle
+12. **Verify before declaring done** — run actual tests (green `bun test`)
+13. **Astro: zero JS by default** — only ship JS via `client:*` directives
+14. **Check module→vault mapping above** — find spec before implementing
+15. **Don't create planned packages** (tui, admin-ui, shared, sdk-ts) without ADR
 
 ---
 
