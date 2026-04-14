@@ -26,7 +26,7 @@ const ERROR_HTML =
 
 export class CallbackServer {
   private readonly cfg: Required<CallbackServerConfig>
-  private server: Server | null = null
+  private server: Server<undefined> | null = null
   private boundPort = 0
   private resolve: ((code: string) => void) | null = null
   private reject: ((err: Error) => void) | null = null
