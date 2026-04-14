@@ -3,13 +3,21 @@ import { builtinDefinitions, registerBuiltinCommands } from "../../src/slash/bui
 import { SlashRegistry } from "../../src/slash/registry.ts"
 
 describe("built-in slash commands", () => {
-  test("5 built-ins: architect, consensus, tdd, code-review, security-review", () => {
+  test("built-ins wired to the CLI entrypoint", () => {
     const defs = builtinDefinitions()
     expect(defs.map((d) => d.name).sort()).toEqual([
       "architect",
+      "checkpoint",
+      "clear",
       "code-review",
       "consensus",
+      "doctor",
+      "help",
+      "init",
+      "plan",
+      "rewind",
       "security-review",
+      "tasks",
       "tdd",
     ])
   })
@@ -29,7 +37,21 @@ describe("built-in slash commands", () => {
         .list()
         .map((d) => d.name)
         .sort(),
-    ).toEqual(["architect", "code-review", "consensus", "security-review", "tdd"])
+    ).toEqual([
+      "architect",
+      "checkpoint",
+      "clear",
+      "code-review",
+      "consensus",
+      "doctor",
+      "help",
+      "init",
+      "plan",
+      "rewind",
+      "security-review",
+      "tasks",
+      "tdd",
+    ])
   })
 
   test("builtin architect requires scope arg", () => {

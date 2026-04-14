@@ -7,6 +7,7 @@ import { makeDoctorCommand } from "./commands/doctor.ts"
 import { makeInitCommand } from "./commands/init.ts"
 import { makeInvokeCommand } from "./commands/invoke.ts"
 import { makeBridgesCommand, makeProvidersCommand } from "./commands/providers.ts"
+import { makeSlashCommand } from "./commands/slash.ts"
 import { makeVersionCommand } from "./commands/version.ts"
 import { formatCommandHelp, formatGlobalHelp } from "./help.ts"
 import { parseArgs } from "./parser.ts"
@@ -25,6 +26,7 @@ export function buildRegistry(lazyRuntime: () => Promise<Runtime>): CommandRegis
   reg.register(makeProvidersCommand(async () => (await lazyRuntime()).catalog))
   reg.register(makeBridgesCommand(async () => (await lazyRuntime()).bridges))
   reg.register(makeInvokeCommand(async () => (await lazyRuntime()).fallback))
+  reg.register(makeSlashCommand(lazyRuntime))
   reg.register(makeConsensusCommand(lazyRuntime))
   reg.register(makeDoctorCommand())
   return reg
