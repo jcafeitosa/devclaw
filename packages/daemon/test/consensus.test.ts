@@ -11,7 +11,7 @@ import {
   type CliId,
   FallbackStrategy,
 } from "@devclaw/core/bridge"
-import { ProviderCatalog } from "@devclaw/core/provider"
+import { ProviderCatalog, type GenerateOpts, type ProviderDescriptor } from "@devclaw/core/provider"
 
 import { createApp } from "../src/app.ts"
 
@@ -52,10 +52,25 @@ function stubBridge(cli: CliId, text: string, opts: { available?: boolean } = {}
   }
 }
 
-async function setup(bridgeMap: Record<string, string>) {
+function judgeProvider(
+  impl: (opts: GenerateOpts) => Promise<string>,
+): ProviderDescriptor {
+  return {
+    id: "judge",
+    name: "Judge",
+    baseUrl: "",
+    defaultModel: "judge-1",
+    async generate(opts) {
+      return impl(opts)
+    },
+  }
+}
+
+async function setup(bridgeMap: Record<string, string>, providers: ProviderDescriptor[] = []) {
   const dir = await mkdtemp(join(tmpdir(), "devclaw-daemon-consensus-"))
   const authStore = new FilesystemAuthStore({ dir, passphrase: "pw" })
   const catalog = new ProviderCatalog()
+  for (const provider of providers) catalog.register(provider)
   const bridges = new BridgeRegistry()
   for (const [cli, text] of Object.entries(bridgeMap)) {
     bridges.register(stubBridge(cli as CliId, text))
@@ -108,6 +123,34 @@ describe("daemon /consensus", () => {
     expect(body.winner).toBe("codex")
     expect(body.participants.map((p) => p.cli).sort()).toEqual(["claude", "codex", "gemini"])
     expect(body.scores.find((s) => s.cli === "codex")?.score).toBeGreaterThan(0)
+  })
+
+  test("uses judge scorer when a provider is available", async () => {
+    const seenPrompts: string[] = []
+    state = await setup(
+      {
+        claude: "this is the longest answer but should lose",
+        codex: "tiny",
+        gemini: "medium",
+      },
+      [
+        judgeProvider(async (opts) => {
+          seenPrompts.push(opts.prompt)
+          return opts.prompt.includes("CLI: codex") ? "1" : "0.2"
+        }),
+      ],
+    )
+    const res = await post(state.app, "/consensus", { prompt: "plan refactor" })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      status: string
+      winner: string
+      scores: Array<{ cli: string; score: number }>
+    }
+    expect(body.status).toBe("ok")
+    expect(body.winner).toBe("codex")
+    expect(seenPrompts.some((prompt) => prompt.includes("Goal: plan refactor"))).toBe(true)
+    expect(seenPrompts.some((prompt) => prompt.includes("CLI: codex"))).toBe(true)
   })
 
   test("--cli subset respected via body.clis", async () => {

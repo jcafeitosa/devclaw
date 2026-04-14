@@ -4,6 +4,7 @@ import type { BridgeRegistry, CliId, FallbackStrategy } from "@devclaw/core/brid
 import {
   ConsensusNoBridgesError,
   type ConsensusScorer,
+  makeLLMJudgeScorer,
   runConsensus,
 } from "@devclaw/core/consensus"
 import { discover } from "@devclaw/core/discovery"
@@ -54,6 +55,21 @@ function isLoopback(req: Request): boolean {
 
 function authSecret(cfg: AppConfig): string {
   return cfg.auth?.jwtSecret ?? process.env.DEVCLAW_DAEMON_JWT_SECRET ?? DEFAULT_JWT_SECRET
+}
+
+function consensusScorer(rt: DaemonRuntime, goal: string): ConsensusScorer {
+  const judgeProvider = rt.catalog.list()[0]
+  if (!judgeProvider) {
+    return async (_cli, text) => {
+      if (text.length === 0) return 0
+      return 0.1 + (Math.min(text.length, 2000) / 2000) * 0.9
+    }
+  }
+  return makeLLMJudgeScorer({
+    catalog: rt.catalog,
+    providerId: judgeProvider.id,
+    goal,
+  })
 }
 
 export async function issueAuthToken(secret: string, claims: Record<string, unknown> = {}) {
@@ -235,13 +251,10 @@ function buildElysiaApp(cfg: AppConfig) {
     .post(
       "/consensus",
       async ({ body, status }) => {
-        const lengthScorer: ConsensusScorer = async (_cli, text) => {
-          if (text.length === 0) return 0
-          return 0.1 + Math.min(text.length, 2000) / 2000 * 0.9
-        }
         try {
+          const scorer = consensusScorer(rt, body.prompt)
           const result = await runConsensus(
-            { bridges: rt.bridges, scorer: lengthScorer, clis: body.clis as CliId[] | undefined },
+            { bridges: rt.bridges, scorer, clis: body.clis as CliId[] | undefined },
             {
               taskId: body.taskId ?? `task_${Date.now()}`,
               agentId: body.agentId ?? "daemon",
