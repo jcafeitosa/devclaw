@@ -9,6 +9,7 @@
     "./context": "./src/context/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./oauth": "./src/oauth/index.ts",
+    "./prompt": "./src/prompt/index.ts",
     "./provider": "./src/provider/index.ts",
     "./queue": "./src/queue/index.ts",
     "./tool": "./src/tool/index.ts"
