@@ -1,3 +1,4 @@
+import type { Bridge, BridgeEvent, BridgeRequest } from "../bridge/types.ts"
 import type { ToolExecutor } from "../tool/executor.ts"
 import type { ToolInvocationCtx, ToolResult } from "../tool/types.ts"
 import type { SafetyKernel } from "./index.ts"
@@ -50,4 +51,32 @@ export async function guardedToolInvoke<O = unknown>(
 
   if (!result) throw new Error(`guardedToolInvoke: ${toolId} produced no result`)
   return result
+}
+
+export function guardedBridgeExecute(
+  kernel: SafetyKernel,
+  bridge: Bridge,
+  ctx: KernelContext,
+  req: BridgeRequest,
+): AsyncIterable<BridgeEvent> {
+  const iter = kernel.invoke(ctx, {
+    kind: "bridge",
+    tool: bridge.cli,
+    action: "bridge.execute",
+    inputText: req.prompt,
+    input: {
+      cli: bridge.cli,
+      taskId: req.taskId,
+      agentId: req.agentId,
+      cwd: req.cwd,
+      model: req.model,
+    },
+    target: bridge.cli,
+    execute: async function* (): AsyncGenerator<KernelEvent> {
+      for await (const event of bridge.execute(req)) {
+        yield event as KernelEvent
+      }
+    },
+  })
+  return iter as AsyncIterable<BridgeEvent>
 }
