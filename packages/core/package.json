@@ -21,6 +21,7 @@
     "./provider": "./src/provider/index.ts",
     "./queue": "./src/queue/index.ts",
     "./reflection": "./src/reflection/index.ts",
+    "./research": "./src/research/index.ts",
     "./skill": "./src/skill/index.ts",
     "./slash": "./src/slash/index.ts",
     "./subagent": "./src/subagent/index.ts",
