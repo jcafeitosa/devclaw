@@ -68,7 +68,7 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 
 | Module | Vault | Status |
 |---|---|---|
-| Research Engine (RAG) | `45_research_engine/` | ⬜ |
+| Research Engine (RAG) | `45_research_engine/` | ✅ |
 | Governance / policies | `03_company_os/governance` | ⬜ |
 
 ## Phase 6 — Polish (UI/UX)
