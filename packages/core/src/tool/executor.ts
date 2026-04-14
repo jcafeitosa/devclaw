@@ -1,13 +1,14 @@
 import type { AuditLog } from "../auth/audit.ts"
+import type { Moderator } from "../safety/types.ts"
 import { EventEmitter } from "../util/event_emitter.ts"
 import {
   type ToolErrorCode,
   ToolExecError,
   ToolPermissionError,
+  ToolSafetyError,
   ToolTimeoutError,
   ToolValidationError,
 } from "./errors.ts"
-import type { PermissionChecker } from "./permission.ts"
 import type { ToolRegistry } from "./registry.ts"
 import type { Tool, ToolInvocationCtx, ToolResult } from "./types.ts"
 import { validateInput } from "./validate.ts"
@@ -20,9 +21,13 @@ export interface ToolExecutorEvents extends Record<string, unknown> {
 
 export interface ToolExecutorConfig {
   registry: ToolRegistry
-  permission: PermissionChecker
+  permission: {
+    check(tool: Tool, input: unknown, ctx: ToolInvocationCtx): Promise<"allow" | "deny">
+  }
   audit?: AuditLog
   defaultTimeoutMs?: number
+  /** Safety kernel — scans stringified input + output. Per ADR-022 non-bypassable. */
+  moderator?: Moderator
 }
 
 export class ToolExecutor {
@@ -58,6 +63,20 @@ export class ToolExecutor {
       throw err
     }
 
+    if (this.cfg.moderator) {
+      const r = await this.cfg.moderator.check(JSON.stringify(input), "input")
+      if (!r.allowed) {
+        const err = new ToolSafetyError(
+          id,
+          "input",
+          r.flags.map((f) => f.category),
+        )
+        this.fail(id, err, performance.now() - started)
+        await this.writeAudit("tool.invoke.fail", ctx, id, { code: err.code })
+        throw err
+      }
+    }
+
     const timeoutMs = tool.timeoutMs ?? this.cfg.defaultTimeoutMs ?? 30_000
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -72,6 +91,19 @@ export class ToolExecutor {
         }),
       ])
       clearTimeout(timer)
+      if (this.cfg.moderator) {
+        const r = await this.cfg.moderator.check(JSON.stringify(output), "output")
+        if (!r.allowed) {
+          const err = new ToolSafetyError(
+            id,
+            "output",
+            r.flags.map((f) => f.category),
+          )
+          this.fail(id, err, performance.now() - started)
+          await this.writeAudit("tool.invoke.fail", ctx, id, { code: err.code })
+          throw err
+        }
+      }
       const durationMs = performance.now() - started
       this.events.emit("tool_completed", { toolId: id, durationMs, output })
       await this.writeAudit("tool.invoke.ok", ctx, id, { durationMs: Math.round(durationMs) })
@@ -85,6 +117,7 @@ export class ToolExecutor {
         await this.writeAudit("tool.invoke.fail", ctx, id, { code: cause.code })
         throw cause
       }
+      if (cause instanceof ToolSafetyError) throw cause
       const err = new ToolExecError(id, cause)
       this.fail(id, err, durationMs)
       await this.writeAudit("tool.invoke.fail", ctx, id, { code: err.code })

@@ -9,6 +9,7 @@ import type {
   Capabilities,
 } from "../../src/bridge/types.ts"
 import { ProviderCatalog } from "../../src/provider/catalog.ts"
+import { RegexPatternModerator } from "../../src/safety/moderator.ts"
 
 function mock(cli: string, opts: Partial<Bridge> = {}): Bridge {
   const events: BridgeEvent[] = [
@@ -137,5 +138,30 @@ describe("FallbackStrategy", () => {
     const f = new FallbackStrategy({ registry, catalog, fallbackProviderId: "openai" })
     const events = await collect(f.execute(req))
     expect(events.some((e) => e.type === "log" && e.message.includes("fallback"))).toBe(true)
+  })
+
+  test("blocks execution before bridge/provider when input moderation flags prompt", async () => {
+    const registry = new BridgeRegistry()
+    registry.register(mock("claude"))
+    const catalog = new ProviderCatalog()
+    const f = new FallbackStrategy({
+      registry,
+      catalog,
+      moderator: new RegexPatternModerator([
+        {
+          name: "warn_token",
+          category: "prompt_injection",
+          pattern: /do/g,
+          severity: "warn",
+        },
+      ]),
+    })
+    const events = await collect(f.execute(req))
+    expect(
+      events.some(
+        (event) => event.type === "error" && event.message.includes("safety blocked input"),
+      ),
+    ).toBe(true)
+    expect(events.some((event) => event.type === "text")).toBe(false)
   })
 })

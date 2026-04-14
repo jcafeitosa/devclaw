@@ -1,4 +1,6 @@
 import type { ProviderCatalog } from "../provider/catalog.ts"
+import { createDefaultModerator } from "../safety/moderator.ts"
+import type { Moderator } from "../safety/types.ts"
 import type { BridgeRegistry } from "./registry.ts"
 import type { Bridge, BridgeEvent, BridgeRequest } from "./types.ts"
 
@@ -7,6 +9,7 @@ export interface FallbackStrategyConfig {
   catalog: ProviderCatalog
   fallbackProviderId?: string
   fallbackModel?: string
+  moderator?: Moderator
 }
 
 export class FallbackStrategy {
@@ -16,6 +19,22 @@ export class FallbackStrategy {
     const self = this
     return {
       async *[Symbol.asyncIterator]() {
+        const moderator = self.cfg.moderator ?? createDefaultModerator()
+        const moderation = await moderator.check(req.prompt, "input")
+        if (moderation.flags.length > 0) {
+          yield {
+            type: "log",
+            level: "error",
+            message: `safety blocked input for ${req.cli}: ${moderation.flags.map((flag) => flag.category).join(", ")}`,
+          }
+          yield {
+            type: "error",
+            message: `safety blocked input: ${moderation.flags.map((flag) => flag.category).join(", ")}`,
+            recoverable: false,
+          }
+          return
+        }
+
         const bridge = await self.pickBridge(req)
         if (bridge) {
           for await (const event of bridge.execute(req)) yield event

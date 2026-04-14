@@ -11,6 +11,8 @@ import { InMemoryEpisodic } from "../../src/memory/episodic.ts"
 import { InMemoryLongTerm } from "../../src/memory/long_term.ts"
 import { MemoryService } from "../../src/memory/service.ts"
 import { InMemoryShortTerm } from "../../src/memory/short_term.ts"
+import { RegexPatternModerator } from "../../src/safety/moderator.ts"
+import type { Moderator } from "../../src/safety/types.ts"
 
 function memoryService() {
   const embedder = new HashEmbedder({ dim: 64 })
@@ -27,6 +29,7 @@ function makeEngine(
   exec: (ctx: StepContext) => Promise<{ output: unknown } | { error: string }>,
   memory = memoryService(),
   maxSteps = 10,
+  moderator?: Moderator,
 ) {
   const executor: StepExecutor = {
     async execute(ctx) {
@@ -45,6 +48,7 @@ function makeEngine(
       }),
       executor,
       memory,
+      moderator,
       maxSteps,
     }),
     memory,
@@ -126,5 +130,29 @@ describe("CognitiveEngine", () => {
     await engine.run({ goal: "g", expectedOutput: "x" })
     expect(seenTiers).toContain("executor")
     expect(seenTiers).toContain("advisor")
+  })
+
+  test("blocks step when output moderation flags content", async () => {
+    const { engine } = makeEngine(
+      [{ id: "a", description: "unsafe" }],
+      async () => ({ output: "contains LEAK marker" }),
+      memoryService(),
+      10,
+      new RegexPatternModerator([
+        {
+          name: "warn_marker",
+          category: "dangerous_instructions",
+          pattern: /LEAK/g,
+          severity: "warn",
+          modes: ["output"],
+        },
+      ]),
+    )
+    await expect(engine.run({ goal: "g", expectedOutput: "x" })).rejects.toBeInstanceOf(
+      StepFailedError,
+    )
+    await expect(engine.run({ goal: "g", expectedOutput: "x" })).rejects.toThrow(
+      /safety blocked output/i,
+    )
   })
 })

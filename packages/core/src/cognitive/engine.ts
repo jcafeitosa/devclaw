@@ -1,4 +1,7 @@
 import type { MemoryService } from "../memory/service.ts"
+import { SafetyViolationError } from "../safety/errors.ts"
+import { createDefaultModerator } from "../safety/moderator.ts"
+import type { Moderator } from "../safety/types.ts"
 import { MaxStepsExceededError, StepFailedError } from "./errors.ts"
 import { PlanGraph } from "./plan_graph.ts"
 import type { Planner } from "./planner.ts"
@@ -13,6 +16,7 @@ export interface CognitiveEngineConfig {
   router: ModelRouter
   executor: StepExecutor
   memory: MemoryService
+  moderator?: Moderator
   maxSteps?: number
   defaultTier?: Tier
   onStepCompleted?: (ctx: StepContext, state: StepState) => void | Promise<void>
@@ -68,6 +72,7 @@ export class CognitiveEngine {
       const started = state.startedAt
       try {
         const { output } = await this.cfg.executor.execute(ctx)
+        await this.assertSafeOutput(output)
         state.status = "completed"
         state.completedAt = Date.now()
         state.output = output
@@ -122,6 +127,26 @@ export class CognitiveEngine {
       episodes,
       completed,
       reason,
+    }
+  }
+
+  private async assertSafeOutput(output: unknown): Promise<void> {
+    const text = this.outputText(output)
+    if (!text) return
+    const moderator = this.cfg.moderator ?? createDefaultModerator()
+    const moderation = await moderator.check(text, "output")
+    if (moderation.flags.length === 0) return
+    throw new SafetyViolationError("output", moderation.flags)
+  }
+
+  private outputText(output: unknown): string | null {
+    if (typeof output === "string") return output
+    if (typeof output === "number" || typeof output === "boolean") return String(output)
+    if (!output) return null
+    try {
+      return JSON.stringify(output)
+    } catch {
+      return String(output)
     }
   }
 }
