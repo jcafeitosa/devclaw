@@ -209,3 +209,137 @@ H-09 (Real PTY)         ──→ independent
 ```
 
 Only H-07 depends on H-01. All others are parallelizable.
+
+---
+
+## Full vault → code → TODO coverage matrix
+
+> Every vault module (62 numbered + 4 special) mapped to implementation status.
+> Ensures NO documentation is orphaned — every spec either has code, a TODO task, or an explicit deferral.
+
+### ✅ Implemented (vault spec → code exists → tests pass)
+
+| Vault module | Code module | Lines | Tests | TODO ref |
+|---|---|---|---|---|
+| `00_vision` | — (design only, no code needed) | — | — | — |
+| `01_prd` | — (design only) | — | — | — |
+| `02_architecture` | — (design only) | — | — | — |
+| `03_company_os` | `governance` | 553 | 5 | Phase 5 ✅ |
+| `04_work_management` | `work` | 647 | 5 | Phase 2 ✅ |
+| `05_communication_os` | `comm` | 594 | 5 | Phase 2 ✅ |
+| `06_agent_os` (cognitive) | `cognitive` | 522 | 7 | Phase 1 ✅ |
+| `06_agent_os` (context) | `context` | 429 | 8 | Phase 1 ✅ |
+| `06_agent_os` (memory) | `memory` | 622 | 7 | Phase 1 ✅ |
+| `06_agent_os` (prompt) | `prompt` | 354 | 6 | Phase 1 ✅ |
+| `06_agent_os` (skill) | `skill` | 452 | 5 | Phase 3 ✅ |
+| `06_agent_os` (subagents) | `subagent` | 463 | 5 | Phase 2 ✅ |
+| `06_agent_os` (tool) | `tool` | 587 | 9 | Phase 1 ✅ |
+| `07_learning` | `learning` + `reflection` | 724+370 | 7+5 | Phase 4 ✅ |
+| `08_runtime` | `runtime` | 1024 | 9 | Phase 1 ✅ |
+| `09_security` (audit) | `audit` | 249 | 1 | Phase 5 ✅ (H-08 for more tests) |
+| `09_security` (permission) | `permission` | 162 | 2 | Phase 5 ✅ |
+| `10_observability` | `observability` | 440 | 4 | Phase 5 ✅ |
+| `12_event_system` | `queue` + `hook` | 475+409 | 3+5 | Phase 1+2 ✅ |
+| `14_sdlc` | — (methodology, enforced by hooks) | — | — | — |
+| `15_templates` | — (vault reference) | — | — | — |
+| `18_decisions` | — (19 ADRs, all accepted) | — | — | — |
+| `35_ai_safety` | `safety` | 166 | 1 | Phase 1 ✅ (H-04 to wire in) |
+| `36_cost_optimizer` | `cost` + `cache` | 217+158 | 3+2 | Phase 5 ✅ |
+| `42_cli_bridge` | `bridge` | 786 | 7 | Phase 1 ✅ |
+| `43_self_correction` | `correction` | 464 | 5 | Phase 3 ✅ |
+| `44_team_composition` | `team` | 501 | 5 | Phase 2 ✅ |
+| `45_research_engine` | `research` | 552 | 6 | Phase 5 ✅ |
+| `46_slash_commands` | `slash` | 651 | 5 | Phase 2 ✅ |
+| `47_checkpoints_rewind` | `checkpoint` | 442 | 6 | Phase 2 ✅ |
+| `50_discovery` | `discovery` | 316 | 4 | Phase 1 ✅ |
+| `51_hooks` | `hook` | 409 | 5 | Phase 2 ✅ |
+| `53_gateway_daemon` | daemon package | ~400 | 3 | Phase 1 ✅ (P8-02 for 3-mode) |
+| `54_nodes_devices` | `node` | 304 | 4 | Phase 8 ✅ |
+| `56_context_engine_mcp` | `protocol` (MCP) | (in 1382) | (in 9) | Phase 7 ✅ |
+| `57_acp_protocol` | `protocol` (ACP) + `capability` | (in 1382)+130 | (in 9)+1 | Phase 7 ✅ |
+| `58_lsp_integration` | `lsp` | 566 | 5 | Phase 7 🟡 (P7-03) |
+| `59_pty_terminal` | `terminal` | 375 | 4 | Phase 7 🟡 (P7-04 + H-09) |
+| `60_provider_connection` | `auth` + `oauth` + `provider` | 312+443+167 | 7+7+4 | Phase 1 ✅ (H-03 for more adapters) |
+| `61_concrete_adapters` | `bridge` (claude/codex/gemini/aider) | (in 786) | (in 7) | Phase 1 ✅ |
+| `52_advanced_capabilities` | `runtime` (exec) | (in 1024) | (in 9) | Phase 8 🟡 (P8-01) |
+| `55_dev_methodology` | — (methodology, enforced by workflow) | — | — | — |
+
+### 🟡 Partially implemented (code exists, needs depth)
+
+| Vault module | Code | What's missing | TODO ref |
+|---|---|---|---|
+| `11_data_models` | **No code** — schemas in vault only | Drizzle ORM + SQLite + migrations | **H-01** + **H-07** |
+| `52_advanced_capabilities` | `runtime/managed` | Cloud managed agent integration | **P8-01** |
+| `53_gateway_daemon` | daemon package | Only single-process mode, no CLI-only/distributed | **P8-02** |
+| `58_lsp_integration` | `lsp` | Pool works, no actual LSP binary spawning | **P7-03** |
+| `59_pty_terminal` | `terminal` | Bun.spawn only, no real PTY resize/signals | **P7-04** + **H-09** |
+
+### ⬜ Not yet implemented (vault spec exists, no code)
+
+| Vault module | Scope | Phase | TODO ref |
+|---|---|---|---|
+| `49_tui` | Terminal UI with Ink framework | Phase 6 | **P6-01** |
+| `22_ux_flows` | Admin dashboard views, onboarding flow | Phase 6 | **P6-02** |
+| `37_knowledge_graph` | Entity relationships beyond vector (AGE extension) | Phase 5b | **P5b-01** (new) |
+| `13_integrations` (Slack/MCP) | External channel connectors | Phase 2+ | **INT-01** (new) |
+| `26_api_sdk` | Public REST/GraphQL/gRPC API surface + SDK | Phase 6+ | **API-01** (new) |
+| `39_notifications` | Notification routing/dedup/preferences | Phase 6+ | **NOT-01** (new) |
+| `16_agents` (concrete prompts) | Per-agent system prompts for 14 roles | Phase 2+ | **AGT-01** (new) |
+| `40_reporting` | Dashboards, scheduled reports, exports | Phase 6+ | **RPT-01** (new) |
+| `41_workflow_designer` | Visual workflow builder (low-code) | Phase 8+ | **WFD-01** (new) |
+| `38_ab_testing` | Prompt/policy/feature experimentation | Phase 8+ | **ABT-01** (new) |
+| `32_i18n` | Multilingual support (22+ locales) | Phase 6+ | **I18-01** (new) |
+
+### 🚫 Deferred (out-of-scope per pivot, vault status: deferred)
+
+| Vault module | Reason | Reactivation trigger |
+|---|---|---|
+| `27_billing` | Personal tooling, no billing needed | Commercial pivot |
+| `28_marketplace` | No marketplace for personal tool | Commercial pivot |
+| `29_tenant_management` | Single-user, no multi-tenancy | Commercial pivot |
+| `30_compliance` | No SOC2/HIPAA certs needed | Commercial pivot |
+| `31_disaster_recovery` | Local-first, no DR infrastructure | Production deployment |
+| `33_mobile` | No mobile app planned | User demand |
+| `34_voice` | No voice channel planned | User demand |
+
+### 📚 Reference-only (design docs, no code needed)
+
+| Vault module | Purpose |
+|---|---|
+| `00_vision` | Mission, principles, positioning |
+| `01_prd` | Product requirements document |
+| `02_architecture` | System overview, layers, scaling |
+| `14_sdlc` | SDLC lifecycle (enforced via hooks, not code module) |
+| `15_templates` | Document templates for vault |
+| `17_tasks` | Task tracking structure (vault folders) |
+| `18_decisions` | 19 ADRs (all accepted) |
+| `19_logs` | Log storage structure (vault folders) |
+| `20_knowledge_base` | Patterns/incidents collection (vault curation) |
+| `21_heritage` | Ancestry analysis (6 deep analyses) |
+| `23_roadmap` | 8 phases + milestones |
+| `24_risks` | Risk analysis (5 categories) |
+| `25_glossary` | Term definitions |
+| `48_agnostic_architecture` | Adapter pattern design (implemented across all modules) |
+| `55_dev_methodology` | SDD+TDD methodology (enforced via hooks + workflow) |
+| `_audits` | Audit reports |
+| `_diagrams` | System diagrams |
+| `_implementation` | Implementation guides + scaffolding |
+
+---
+
+## Future backlog (documented in vault, not yet in any phase)
+
+> These vault modules have specs but aren't assigned to current phases.
+> They require an ADR or roadmap update before implementation.
+
+| ID | Vault module | Scope | Prerequisite |
+|---|---|---|---|
+| P5b-01 | `37_knowledge_graph` | AGE graph extension in Postgres, entity extraction, semantic queries | H-01 (Drizzle/DB) |
+| INT-01 | `13_integrations` (channels) | Slack/Discord/Telegram connectors via adapter pattern | Phase 2 comm module |
+| API-01 | `26_api_sdk` | Public API surface (OpenAPI auto-gen from Elysia is partially there) | H-02 (daemon auth) |
+| NOT-01 | `39_notifications` | Delivery routing, dedup, user preferences | Phase 2 comm module |
+| AGT-01 | `16_agents` (prompts) | Concrete system prompts for 14 agent roles (CEO, CTO, Backend, QA, etc.) | Phase 2 team module |
+| RPT-01 | `40_reporting` | Cost/performance dashboards, scheduled exports | P6-02 (admin-ui) |
+| WFD-01 | `41_workflow_designer` | Visual workflow builder (drag-and-drop nodes) | P6-02 (admin-ui) |
+| ABT-01 | `38_ab_testing` | Prompt/policy/feature A/B experiments | Phase 4 learning |
+| I18-01 | `32_i18n` | i18n for agent prompts + UI (22+ locales) | P6-01 or P6-02 |
