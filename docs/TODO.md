@@ -52,7 +52,7 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 
 | Module | Vault | Status |
 |---|---|---|
-| Self-Correction loop | `43_self_correction/` | ⬜ |
+| Self-Correction loop | `43_self_correction/` | ✅ |
 | Advanced CPE (skills integration) | `06_agent_os/skill_system` | ⬜ |
 
 ## Phase 4 — Learning
