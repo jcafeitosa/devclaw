@@ -37,8 +37,8 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 
 | Module | Vault | Status |
 |---|---|---|
-| Team Composition (roles/assembly/patterns) | `44_team_composition/` | ⏳ **next** |
-| Collaboration System (4 modes) | `05_communication_os/collaboration_system` | ⏳ **next** |
+| Team Composition (roles/assembly/patterns) | `44_team_composition/` | ✅ |
+| Collaboration System (4 modes) | `05_communication_os/collaboration_system` | ✅ |
 | Subagents w/ isolation | `06_agent_os/subagents` | ⬜ |
 | Slash Commands core | `46_slash_commands/` | ⬜ |
 | Hooks + Hard Gates | `51_hooks/` · `55_dev_methodology/hard_gates` | ⬜ |
