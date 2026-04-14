@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "typecheck": "astro check"
+    "dev": "bun x --bun astro dev",
+    "build": "bun x --bun astro build",
+    "preview": "bun x --bun astro preview",
+    "typecheck": "bun x --bun astro check"
   },
   "dependencies": {
     "@astrojs/starlight": "0.38.3",
