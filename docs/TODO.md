@@ -43,7 +43,7 @@ Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas found
 | **H-05** | E2E integration test | — | ✅ (2026-04-14, test/e2e/lifecycle.test.ts exercita auth→discover→provider→bridge→cognitive→tool→memory) |
 | **H-09** | Terminal real PTY (node-pty) | — | ✅ (2026-04-14, NodePtyAdapter default + BunPtyAdapter fallback, resize/signals/stdin funcionais) |
 | **S-03** | Permission persistence (SQLite + hot-reload) | H-01 | ✅ (2026-04-14, `PermissionRuleStore` SQLite + `PersistentScopedPermissionEvaluator` with `rule_changed` reload, +4 test files green, `@devclaw/core` typecheck green) |
-| **I-02** | ACP session persistence + state machine + reconnect + pending-permission durable | H-01 | 🟡 (2026-04-14, `ACPSessionStore` SQLite + `ACPServer.sessionStore` para `session/new/load/close`, e `ACPPermissionRequestStore` com replay de pending permissions via `setSend()/replayPendingPermissions()` no reconnect do transporte. Falta state machine ACP mais completa.) |
+| **I-02** | ACP session persistence + state machine + reconnect + pending-permission durable | H-01 | ✅ (2026-04-14, `ACPSessionStore` SQLite + estados `idle/running/awaiting_permission` + `ACPServer.sessionStore` em `session/new/load/close`, e `ACPPermissionRequestStore` com replay automático no reconnect do transporte via `setSend()`) |
 | **P-01** | Memory recall via `VectorAdapter` (pgvector HNSW) — fecha B1 (800ms→8ms) | A-01 | ⬜ |
 | **P-02** | Daemon concurrency semaphore + request draining + graceful shutdown | — | ⬜ |
 | **D-01** | Binário `devclaw` (bin shim em package.json) + `devclaw doctor` com SHA256 binary pin | — | ⬜ |
