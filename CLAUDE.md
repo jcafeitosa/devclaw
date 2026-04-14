@@ -312,6 +312,15 @@ bun lint                  # biome check
 bun lint:fix              # biome check --write
 bun format                # biome format --write
 
+# Dev servers (per H-06):
+bun dev                   # turbo parallel — runs every package's `dev` task
+bun dev:daemon            # Elysia with bun --hot reload (port 4551)
+bun dev:docs              # Astro dev server for docs-site (port 4321)
+
+# Build:
+bun build                 # turbo build across workspaces
+bun build:docs            # docs-site production build
+
 # Per-package:
 bun test --filter @devclaw/core    # core tests only
 bun run packages/cli/src/index.ts  # direct CLI invoke
@@ -324,9 +333,8 @@ BUN_TEST_REDIS=redis://localhost:6379 bun test
 ### Commands NOT yet wired (planned):
 ```bash
 # These DO NOT exist yet — do not run:
-# bun dev, bun dev:daemon, bun dev:admin, bun dev:docs
-# bun db:generate, bun db:migrate, bun db:studio
-# bun build
+# bun dev:admin             # admin UI package not yet created
+# bun db:generate, bun db:migrate, bun db:studio   # H-01 Drizzle
 ```
 
 ---

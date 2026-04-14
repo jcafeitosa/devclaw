@@ -17,7 +17,12 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check",
     "lint:fix": "biome check --write",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "dev": "turbo run dev --parallel",
+    "dev:daemon": "bun run --filter '@devclaw/daemon' dev",
+    "dev:docs": "bun run --filter '@devclaw/docs-site' dev",
+    "build": "turbo run build",
+    "build:docs": "bun run --filter '@devclaw/docs-site' build"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.11",
