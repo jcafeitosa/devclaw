@@ -19,6 +19,7 @@
     "./memory": "./src/memory/index.ts",
     "./oauth": "./src/oauth/index.ts",
     "./prompt": "./src/prompt/index.ts",
+    "./protocol": "./src/protocol/index.ts",
     "./provider": "./src/provider/index.ts",
     "./queue": "./src/queue/index.ts",
     "./reflection": "./src/reflection/index.ts",

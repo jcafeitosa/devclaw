@@ -86,8 +86,8 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 
 | Module | Vault | Status |
 |---|---|---|
-| ACP (JSON-RPC bidirectional) | `57_acp_protocol/` · ADR-016 | ⬜ |
-| MCP context engine (expose core) | `56_context_engine_mcp/` · ADR-015 | ⬜ |
+| ACP (JSON-RPC bidirectional) | `57_acp_protocol/` · ADR-016 | ✅ |
+| MCP context engine (expose core) | `56_context_engine_mcp/` · ADR-015 | ✅ |
 | LSP integration | `58_lsp_integration/` | ⬜ |
 | PTY/Terminal | `59_pty_terminal/` | ⬜ |
 
