@@ -46,13 +46,13 @@ Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas found
 | **I-02** | ACP session persistence + state machine + reconnect + pending-permission durable | H-01 | ✅ (2026-04-14, `ACPSessionStore` SQLite + estados `idle/running/awaiting_permission` + `ACPServer.sessionStore` em `session/new/load/close`, e `ACPPermissionRequestStore` com replay automático no reconnect do transporte via `setSend()`) |
 | **P-01** | Memory recall via `VectorAdapter` (pgvector HNSW) — fecha B1 (800ms→8ms) | A-01 | 🟡 (2026-04-14, `SqliteVectorAdapter` persistente + recall reidratável no `InMemoryLongTerm`; falta benchmark/pgvector HNSW final) |
 | **P-02** | Daemon concurrency semaphore + request draining + graceful shutdown | — | ✅ (2026-04-14, `beginShutdown`/`drain`/`inflight` API em `/invoke` e `/consensus`, `/health` expõe `shuttingDown:true`, SIGINT/SIGTERM drain até 30s no bin.ts, +4 tests) |
-| **D-01** | Binário `devclaw` (bin shim em package.json) + `devclaw doctor` com SHA256 binary pin | — | ⬜ |
+| **D-01** | Binário `devclaw` (bin shim em package.json) + `devclaw doctor` com SHA256 binary pin | — | ✅ (2026-04-14, `devclaw doctor [--pin\|--json]` em `packages/cli/src/commands/doctor.ts` — pin grava `~/.devclaw/bridges.lock`, default checa drift com exit 1 + bin shim `#!/usr/bin/env bun` + chmod +x em `packages/cli/src/index.ts`, +7 tests) |
 
 ## 🟡 Sprint 3 (semanas 5-8) — KILL SHOT DEMOÁVEL
 
 | ID | Task | Impact | Status |
 |---|---|---|---|
-| **KILL-01** | **`/consensus <task>` — cross-CLI fan-out + reflection winner** | Demo único que nenhum rival tem | 🟡 (2026-04-14, core + `devclaw consensus` CLI + `POST /consensus` daemon + `makeLLMJudgeScorer` pluggable judge + slash builtin `consensus`, +20 testes. Falta: TUI live render em Ink) |
+| **KILL-01** | **`/consensus <task>` — cross-CLI fan-out + reflection winner** | Demo único que nenhum rival tem | ✅ (2026-04-14, 5 superfícies: core `runConsensus` + `devclaw consensus [--live]` CLI + `POST /consensus` daemon + slash builtin `consensus` + Ink TUI live render via `ConsensusObserver`, +22 tests) |
 | **C-02** | Token-aware ranker: `score = rel × 1/(1+α·log(tokens))`, α=0.35 | -15% custo adicional; reordena prefix-stable para cache | ⬜ |
 | **C-03** | Budget hard-stop $0.15/task, $2/session, $10/day + TUI warnings | Paperclip parity | ⬜ |
 | **I-01** | Google AI + Ollama + **OpenRouter** (OpenRouter = 100+ modelos em 1 adapter) | Substitui H-03; unlock offline + rate-limit diversification | ⬜ |
