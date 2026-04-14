@@ -15,6 +15,8 @@ export interface CognitiveEngineConfig {
   memory: MemoryService
   maxSteps?: number
   defaultTier?: Tier
+  onStepCompleted?: (ctx: StepContext, state: StepState) => void | Promise<void>
+  onStepFailed?: (ctx: StepContext, state: StepState) => void | Promise<void>
 }
 
 function nextEpisodeId(): string {
@@ -82,6 +84,7 @@ export class CognitiveEngine {
           sessionId: task.sessionId,
         })
         episodes.push(epId)
+        if (this.cfg.onStepCompleted) await this.cfg.onStepCompleted(ctx, state)
       } catch (cause) {
         state.status = "failed"
         state.completedAt = Date.now()
@@ -99,6 +102,7 @@ export class CognitiveEngine {
           sessionId: task.sessionId,
         })
         episodes.push(epId)
+        if (this.cfg.onStepFailed) await this.cfg.onStepFailed(ctx, state)
         throw new StepFailedError(step.id, cause)
       }
     }
