@@ -47,9 +47,14 @@ export interface ACPSessionLoadParams {
   sessionId: string
 }
 
+export type ACPPromptContent =
+  | { type: "text"; text: string }
+  | { type: "image"; mimeType: string; data: string }
+  | { type: "resource"; uri: string; text?: string }
+
 export interface ACPPromptParams {
   sessionId: string
-  prompt: string
+  prompt: string | ACPPromptContent[]
   meta?: Record<string, string>
 }
 
@@ -63,6 +68,12 @@ export interface ACPStreamChunk {
   at: number
 }
 
+export interface ACPStreamUpdate {
+  kind: ACPStreamKind
+  content?: string
+  payload?: unknown
+}
+
 export interface ACPPromptResult {
   sessionId: string
   summary: string
@@ -71,7 +82,6 @@ export interface ACPPromptResult {
 }
 
 export interface ACPPermissionRequest {
-  sessionId: string
   toolId: string
   input: unknown
   reason: string
