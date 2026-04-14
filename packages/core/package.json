@@ -9,6 +9,7 @@
     "./bridge": "./src/bridge/index.ts",
     "./checkpoint": "./src/checkpoint/index.ts",
     "./cognitive": "./src/cognitive/index.ts",
+    "./comm": "./src/comm/index.ts",
     "./context": "./src/context/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./hook": "./src/hook/index.ts",
