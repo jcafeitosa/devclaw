@@ -1,0 +1,21 @@
+{
+  "name": "@devclaw/daemon",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "devclaw-daemon": "./src/bin.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "start": "bun run src/bin.ts"
+  },
+  "dependencies": {
+    "@devclaw/core": "workspace:*",
+    "elysia": "1.4.28"
+  }
+}
