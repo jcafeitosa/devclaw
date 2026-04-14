@@ -97,7 +97,7 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 |---|---|---|
 | Managed Runtimes | `52_advanced_capabilities/` · ADR-012 | 🟡 local + ephemeral + registry |
 | Gateway Daemon modes | `53_gateway_daemon/` | 🟡 basic + ACP/MCP WS |
-| Nodes & Devices | `54_nodes_devices/` | ⬜ |
+| Nodes & Devices | `54_nodes_devices/` | ✅ |
 | Advanced capabilities wrappers | `52_advanced_capabilities/` | ⬜ |
 
 ---

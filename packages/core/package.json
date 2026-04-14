@@ -17,6 +17,7 @@
     "./hook": "./src/hook/index.ts",
     "./learning": "./src/learning/index.ts",
     "./memory": "./src/memory/index.ts",
+    "./node": "./src/node/index.ts",
     "./oauth": "./src/oauth/index.ts",
     "./prompt": "./src/prompt/index.ts",
     "./protocol": "./src/protocol/index.ts",
