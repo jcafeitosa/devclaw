@@ -33,7 +33,7 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 
 **Milestones reached:** M1 (end-to-end task via CLI bridge), M2 (Codex OAuth).
 
-## Phase 2 — Multi-Agent Team + Slash Commands ⏳
+## Phase 2 — Multi-Agent Team + Slash Commands ✅ (M3 reached)
 
 | Module | Vault | Status |
 |---|---|---|
@@ -44,9 +44,9 @@ Legend: ✅ done · 🟡 partial · ⏳ in progress · ⬜ pending
 | Hooks + Hard Gates | `51_hooks/` · `55_dev_methodology/hard_gates` | ✅ |
 | Checkpoints & Rewind | `47_checkpoints_rewind/` | ✅ |
 | Agent Communication + Channels | `05_communication_os/` | ✅ |
-| Work Management (list/kanban/gantt) | `04_work_management/` | ⬜ |
+| Work Management (list/kanban/gantt) | `04_work_management/` | ✅ |
 
-**Milestone target:** M3 — multi-agent collaboration.
+**Milestone reached:** M3 — multi-agent collaboration ✅
 
 ## Phase 3 — Self-Correction + Context
 
