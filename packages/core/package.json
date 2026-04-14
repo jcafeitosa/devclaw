@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./audit": "./src/audit/index.ts",
     "./auth": "./src/auth/index.ts",
     "./bridge": "./src/bridge/index.ts",
     "./cache": "./src/cache/index.ts",
