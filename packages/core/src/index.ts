@@ -1,3 +1,4 @@
+export * from "./adapter/index.ts"
 export * from "./auth/index.ts"
 export * from "./bridge/index.ts"
 export * from "./cache/index.ts"

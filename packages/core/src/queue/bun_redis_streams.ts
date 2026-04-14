@@ -16,6 +16,7 @@ export interface BunRedisStreamsConfig {
 }
 
 export class BunRedisStreamsQueue implements QueueAdapter {
+  readonly kind = "redis-streams" as const
   private client: RedisClient
   private cfg: Required<BunRedisStreamsConfig>
 

@@ -11,9 +11,11 @@ import { ulid } from "./ulid.ts"
 interface Slot<T> {
   msg: QueueMessage<T>
   inFlight: boolean
+  deliveredAt?: number
 }
 
 export class InMemoryQueue implements QueueAdapter {
+  readonly kind = "memory" as const
   private queues = new Map<string, Slot<unknown>[]>()
 
   private getQueue(name: string): Slot<unknown>[] {
@@ -46,6 +48,7 @@ export class InMemoryQueue implements QueueAdapter {
       if (out.length >= count) break
       if (slot.inFlight) continue
       slot.inFlight = true
+      slot.deliveredAt = Date.now()
       slot.msg.attempts++
       out.push(slot.msg as QueueMessage<T>)
     }
@@ -67,10 +70,27 @@ export class InMemoryQueue implements QueueAdapter {
       return
     }
     slot.inFlight = false
+    slot.deliveredAt = undefined
+  }
+
+  async reclaim<T>(queue: string, minIdleMs = 30_000): Promise<QueueMessage<T>[]> {
+    const now = Date.now()
+    const out: QueueMessage<T>[] = []
+    for (const slot of this.getQueue(queue)) {
+      if (!slot.inFlight) continue
+      if (now - (slot.deliveredAt ?? now) < minIdleMs) continue
+      slot.deliveredAt = now
+      out.push(slot.msg as QueueMessage<T>)
+    }
+    return out
   }
 
   async depth(queue: string): Promise<number> {
     return this.getQueue(queue).filter((s) => !s.inFlight).length
+  }
+
+  async close(): Promise<void> {
+    this.queues.clear()
   }
 
   capabilities(): QueueCapabilities {

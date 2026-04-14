@@ -1,4 +1,5 @@
-import { cosineSimilarity, type Embedder } from "./embedding.ts"
+import { MemoryVectorAdapter, type VectorAdapter } from "../adapter/vector.ts"
+import type { Embedder } from "./embedding.ts"
 import type { MemoryItem, MemoryKind, RecallHit, RecallQuery, SearchQuery } from "./types.ts"
 
 export interface LongTermMemory {
@@ -18,6 +19,7 @@ export interface PruneOptions {
 
 export interface InMemoryLongTermConfig {
   embedder: Embedder
+  vector?: VectorAdapter
 }
 
 function matchTags(item: MemoryItem, tags?: string[]): boolean {
@@ -33,14 +35,24 @@ function matchKind(item: MemoryItem, kinds?: MemoryKind[]): boolean {
 export class InMemoryLongTerm implements LongTermMemory {
   private items = new Map<string, MemoryItem>()
   private readonly embedder: Embedder
+  private readonly vector: VectorAdapter
 
   constructor(cfg: InMemoryLongTermConfig) {
     this.embedder = cfg.embedder
+    this.vector = cfg.vector ?? new MemoryVectorAdapter()
   }
 
   async write(item: MemoryItem): Promise<void> {
     const embedding = item.embedding ?? (await this.embedder.embed(item.content))
-    this.items.set(item.id, { ...item, embedding })
+    const stored = { ...item, embedding }
+    this.items.set(item.id, stored)
+    await this.vector.upsert([
+      {
+        id: stored.id,
+        vector: Float32Array.from(embedding),
+        metadata: { kind: stored.kind, tags: stored.tags },
+      },
+    ])
   }
 
   async get(id: string): Promise<MemoryItem | null> {
@@ -53,18 +65,18 @@ export class InMemoryLongTerm implements LongTermMemory {
   }
 
   async recall(query: RecallQuery): Promise<RecallHit[]> {
-    const queryVec = await this.embedder.embed(query.text)
+    const queryVec = Float32Array.from(await this.embedder.embed(query.text))
     const minScore = query.minScore ?? 0
+    const ranked = await this.vector.query(queryVec, { topK: this.items.size || 1 })
     const hits: RecallHit[] = []
-    for (const item of this.items.values()) {
+    for (const hit of ranked) {
+      const item = this.items.get(hit.id)
+      if (!item) continue
       if (!matchTags(item, query.tags)) continue
       if (!matchKind(item, query.kinds)) continue
-      if (!item.embedding) continue
-      const score = cosineSimilarity(queryVec, item.embedding)
-      if (score < minScore) continue
-      hits.push({ item: { ...item }, score })
+      if (hit.score < minScore) continue
+      hits.push({ item: { ...item }, score: hit.score })
     }
-    hits.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id))
     return hits.slice(0, query.limit ?? 10)
   }
 
@@ -91,6 +103,7 @@ export class InMemoryLongTerm implements LongTermMemory {
       if (item.pinned) continue
       if (item.lastUsedAt < cutoff) {
         this.items.delete(id)
+        await this.vector.delete([id])
         removed.push(id)
       }
     }
@@ -99,5 +112,6 @@ export class InMemoryLongTerm implements LongTermMemory {
 
   async delete(id: string): Promise<void> {
     this.items.delete(id)
+    await this.vector.delete([id])
   }
 }
