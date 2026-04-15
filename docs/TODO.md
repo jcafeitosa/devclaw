@@ -91,9 +91,9 @@ Acceptance criteria for this backlog:
 
 | ID | Task | Status |
 |---|---|---|
-| **KILL-02** | Preencher `vault://16_agents/` com 14 role prompts (PM/Arch/BE/FE/QA/SRE/Sec/Doc/...) hot-load via `skill` module | ⬜ |
-| **KILL-03** | Goal-aligned ECAP/TECAP — adicionar `goal_id` em capsules + query view "o que aprendi sobre shipping auth" | ⬜ |
-| **D-03** | TUI (Ink) mínima: chat + task list + cost meter em tempo real | ⬜ |
+| **KILL-02** | Preencher `vault://16_agents/` com 14 role prompts (PM/Arch/BE/FE/QA/SRE/Sec/Doc/...) hot-load via `skill` module | ✅ (2026-04-15, helper `loadBuiltinSkills` + 14 prompts carregados) |
+| **KILL-03** | Goal-aligned ECAP/TECAP — adicionar `goal_id` em capsules + query view "o que aprendi sobre shipping auth" | 🔒 claimed by copilot-ccc02c15 2026-04-15T12:13:38Z |
+| **D-03** | TUI (Ink) mínima: chat + task list + cost meter em tempo real | 🔒 claimed by copilot-c6f9ce6d 2026-04-15T12:12:00Z |
 | **D-04** | Install script (`curl \| bash`) + brew tap + 5 docs pages rewrite (home/install/10-commands/mental-model/FAQ) | ⬜ |
 | **C-04** | Anthropic/OpenAI Batch API para async (-50% em 30% do tráfego) | ⬜ |
 
