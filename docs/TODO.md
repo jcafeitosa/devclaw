@@ -95,7 +95,7 @@ Acceptance criteria for this backlog:
 | **KILL-03** | Goal-aligned ECAP/TECAP — adicionar `goal_id` em capsules + query view "o que aprendi sobre shipping auth" | ⬜ |
 | **D-03** | TUI (Ink) mínima: chat + task list + cost meter em tempo real | ⬜ |
 | **D-04** | Install script (`curl \| bash`) + brew tap + 5 docs pages rewrite (home/install/10-commands/mental-model/FAQ) | 🔒 claimed by copilot-c6f9ce6d 2026-04-15T12:22:00Z |
-| **C-04** | Anthropic/OpenAI Batch API para async (-50% em 30% do tráfego) | ⬜ |
+| **C-04** | Anthropic/OpenAI Batch API para async (-50% em 30% do tráfego) | 🔒 claimed by copilot-c6f9ce6d 2026-04-15T12:26:38Z |
 
 ## ⚫ Deferred (pós-v0.1, rastreado)
 
