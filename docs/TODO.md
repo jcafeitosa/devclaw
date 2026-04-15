@@ -29,16 +29,16 @@ Obsidian source model. They are not feature work; they are spec alignment work.
 
 | ID | Gap | Why it matters | Canonical refs | Status |
 |---|---|---|---|---|
-| **D-10** | Formal gateway contract | Host lifecycle, supervision, connection ownership, handshake and reconnect semantics are part of the vault model but not yet fully mirrored in repo docs | `vault://53_gateway_daemon/`, `docs/design/daemon.md` | 🟡 |
-| **D-11** | Workspace contract + metadata roots | ClawCode-style root merge/discovery order needs to be explicit so "workspace" is not just cwd | `vault://06_agent_os/`, `vault://21_heritage/`, `packages/docs-site/src/content/docs/guides/vault-alignment.md` | 🟡 |
-| **D-12** | Liveness model spec | The repo now has prose, but the vault model should be expressed as one coherent operator story across agent/os/gateway/work/comm/learning | `packages/docs-site/src/content/docs/guides/agent-liveness.md` | 🟡 |
-| **D-13** | Work + comm + subagent integration spec | Need one cross-cutting doc for how work states, channels, and subagents cooperate to keep the agent active without losing isolation | `docs/design/{work,comm,subagents}.md` | 🟡 |
+| **D-10** | Formal gateway contract | Host lifecycle, supervision, connection ownership, handshake and reconnect semantics are part of the vault model but not yet fully mirrored in repo docs | `vault://53_gateway_daemon/`, `docs/design/daemon.md` | ✅ (2026-04-15, `operating-contracts` + daemon/workspace sections) |
+| **D-11** | Workspace contract + metadata roots | ClawCode-style root merge/discovery order needs to be explicit so "workspace" is not just cwd | `vault://06_agent_os/`, `vault://21_heritage/`, `packages/docs-site/src/content/docs/guides/vault-alignment.md` | ✅ (2026-04-15, `operating-contracts` + vault-alignment section) |
+| **D-12** | Liveness model spec | The repo now has prose, but the vault model should be expressed as one coherent operator story across agent/os/gateway/work/comm/learning | `packages/docs-site/src/content/docs/guides/agent-liveness.md` | ✅ (2026-04-15, `operating-contracts` + agent-liveness contract) |
+| **D-13** | Work + comm + subagent integration spec | Need one cross-cutting doc for how work states, channels, and subagents cooperate to keep the agent active without losing isolation | `docs/design/{work,comm,subagents}.md` | ✅ (2026-04-15, design sections + `operating-contracts`) |
 | **D-14** | Vault-aligned doc index | New guide pages should be discoverable from the home page and architecture flow without knowing vault names | `packages/docs-site/src/content/docs/index.md`, `packages/docs-site/src/content/docs/guides/architecture.md` | ✅ |
-| **D-15** | Routine scheduler / wakeup contract | Paperclip's recurring routines, trigger kinds, coalescing, and catch-up policy are a strong model for proactive agent motion | `packages/docs-site/src/content/docs/guides/agent-liveness.md`, `docs/design/work.md` | 🟡 |
-| **D-16** | Issue checkout + stale-lock recovery | Atomic checkout, checkout-run ownership, adoption of stale locks, and release rules make execution state much more resilient | `docs/design/work.md`, `docs/design/governance.md` | 🟡 |
-| **D-17** | Run/activity ledger spec | A unified activity log for runs, wakeups, and mutations would make agents easier to audit and debug over time | `docs/design/daemon.md`, `packages/docs-site/src/content/docs/guides/architecture.md` | 🟡 |
-| **D-18** | Execution workspace/runtime control spec | Managed checkouts, workspace runtime services, and per-run runtime control are not yet first-class in the repo docs | `docs/design/daemon.md`, `docs/design/work.md`, `packages/docs-site/src/content/docs/reference/packages.md` | 🟡 |
-| **D-19** | Project/workspace/goals contract | Paperclip's goals/projects/workspaces model is stricter than our current prose and should be mapped explicitly to Devclaw work structure | `docs/design/governance.md`, `docs/design/team.md`, `packages/docs-site/src/content/docs/reference/protocols.md` | 🟡 |
+| **D-15** | Routine scheduler / wakeup contract | Paperclip's recurring routines, trigger kinds, coalescing, and catch-up policy are a strong model for proactive agent motion | `packages/docs-site/src/content/docs/guides/agent-liveness.md`, `docs/design/work.md` | ✅ (2026-04-15, wakeup contract in `operating-contracts` + agent-liveness) |
+| **D-16** | Issue checkout + stale-lock recovery | Atomic checkout, checkout-run ownership, adoption of stale locks, and release rules make execution state much more resilient | `docs/design/work.md`, `docs/design/governance.md` | ✅ (2026-04-15, work contract + governance alignment) |
+| **D-17** | Run/activity ledger spec | A unified activity log for runs, wakeups, and mutations would make agents easier to audit and debug over time | `docs/design/daemon.md`, `packages/docs-site/src/content/docs/guides/architecture.md` | ✅ (2026-04-15, gateway contract + activity ledger) |
+| **D-18** | Execution workspace/runtime control spec | Managed checkouts, workspace runtime services, and per-run runtime control are not yet first-class in the repo docs | `docs/design/daemon.md`, `docs/design/work.md`, `packages/docs-site/src/content/docs/reference/packages.md` | ✅ (2026-04-15, execution workspace sections) |
+| **D-19** | Project/workspace/goals contract | Paperclip's goals/projects/workspaces model is stricter than our current prose and should be mapped explicitly to Devclaw work structure | `docs/design/governance.md`, `docs/design/team.md`, `packages/docs-site/src/content/docs/reference/protocols.md` | ✅ (2026-04-15, governance/team/protocol alignment) |
 
 Acceptance criteria for this backlog:
 
@@ -91,11 +91,11 @@ Acceptance criteria for this backlog:
 
 | ID | Task | Status |
 |---|---|---|
-| **KILL-02** | Preencher `vault://16_agents/` com 14 role prompts (PM/Arch/BE/FE/QA/SRE/Sec/Doc/...) hot-load via `skill` module | ⬜ |
-| **KILL-03** | Goal-aligned ECAP/TECAP — adicionar `goal_id` em capsules + query view "o que aprendi sobre shipping auth" | ⬜ |
-| **D-03** | TUI (Ink) mínima: chat + task list + cost meter em tempo real | ⬜ |
-| **D-04** | Install script (`curl \| bash`) + brew tap + 5 docs pages rewrite (home/install/10-commands/mental-model/FAQ) | 🔒 claimed by copilot-c6f9ce6d 2026-04-15T12:22:00Z |
-| **C-04** | Anthropic/OpenAI Batch API para async (-50% em 30% do tráfego) | 🔒 claimed by copilot-c6f9ce6d 2026-04-15T12:26:38Z |
+| **KILL-02** | Preencher `vault://16_agents/` com 14 role prompts (PM/Arch/BE/FE/QA/SRE/Sec/Doc/...) hot-load via `skill` module | ✅ (2026-04-15, helper `loadBuiltinSkills` + 14 prompts carregados) |
+| **KILL-03** | Goal-aligned ECAP/TECAP — adicionar `goal_id` em capsules + query view "o que aprendi sobre shipping auth" | ✅ (2026-04-15, goalId + goalView/queryByGoal + policy alignment) |
+| **D-03** | TUI (Ink) mínima: chat + task list + cost meter em tempo real | ✅ (2026-04-15, `@devclaw/tui` export wired and test-green) |
+| **D-04** | Install script (`curl \| bash`) + brew tap + 5 docs pages rewrite (home/install/10-commands/mental-model/FAQ) | ✅ (2026-04-15, install.sh + docs onboarding rewrite) |
+| **C-04** | Anthropic/OpenAI Batch API para async (-50% em 30% do tráfego) | ✅ (2026-04-15, ProviderCatalog.generateBatch + provider tests green) |
 
 ## ⚫ Deferred (pós-v0.1, rastreado)
 

@@ -18,6 +18,5 @@ const _capsule: NewEcapCapsule = {
   created_at: Date.now(),
   updated_at: Date.now(),
   // Expect TypeScript error here until goal_id is added to schema
-  // @ts-expect-error
   goal_id: "goal-123",
 }
