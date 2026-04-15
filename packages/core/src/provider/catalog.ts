@@ -83,6 +83,29 @@ export class ProviderCatalog {
     return [...this.providers.values()]
   }
 
+  async generateBatch(id: string, optsArray: GenerateOpts[], ctx?: KernelContext): Promise<GenerateResult[]> {
+    const d = this.get(id)
+    // If kernel is present, reuse generateWithUsage which will route via kernel
+    if (this.kernel) {
+      const results: GenerateResult[] = []
+      for (const opts of optsArray) {
+        results.push(await this.generateWithUsage(id, opts, ctx))
+      }
+      return results
+    }
+
+    const results: GenerateResult[] = []
+    for (const opts of optsArray) {
+      if (d.generateWithUsage) {
+        results.push(await d.generateWithUsage(opts))
+      } else {
+        const text = await d.generate(opts)
+        results.push({ text, model: opts.model ?? d.defaultModel, usage: { input_tokens: 0, output_tokens: 0 } })
+      }
+    }
+    return results
+  }
+
   async generate(id: string, opts: GenerateOpts, ctx?: KernelContext): Promise<string> {
     return (await this.generateWithUsage(id, opts, ctx)).text
   }
