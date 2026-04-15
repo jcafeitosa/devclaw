@@ -85,7 +85,7 @@ Acceptance criteria for this backlog:
 | **I-01** | Google AI + Ollama + **OpenRouter** (OpenRouter = 100+ modelos em 1 adapter) | Substitui H-03; unlock offline + rate-limit diversification | ✅ (2026-04-14, `makeOpenRouterAdapter` + `registerBuiltins()` auth/env wiring, +2 tests) |
 | **D-02** | 10 slash commands wired: `/help /tdd /code-review /plan /doctor /init /checkpoint /rewind /tasks /clear` | Hoje só 4 em builtins.ts, **nenhum wired ao CLI** | ✅ (2026-04-14, `devclaw slash` entrypoint + 10 roadmap slash commands list/render/run via builtins registry, +3 tests) |
 | **P-03** | Queue `nack` re-XADD (fix cosmetic backoff; poison msg stalls consumer hoje) | +40% throughput em carga com 1% poison | ✅ (2026-04-15, TDD + fix) |
-| **P-04** | Bridge output cache keyed by `hash(prompt+cli+cwd.git.HEAD)` | ~15% hit em re-runs; p50 3.2s → 50ms on hit | ⬜ |
+| **P-04** | Bridge output cache keyed by `hash(prompt+cli+cwd.git.HEAD)` | ~15% hit em re-runs; p50 3.2s → 50ms on hit | ✅ (2026-04-15, implemented) |
 
 ## 🟢 Sprint 4 (semanas 9-12) — POLISH + SHIP
 
