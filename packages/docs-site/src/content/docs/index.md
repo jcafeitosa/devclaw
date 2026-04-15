@@ -21,5 +21,6 @@ multi-agent collaboration, self-correction, learning, and governance.
 4. **Spec source-of-truth lives in an Obsidian vault** — this site is a
    navigable surface over the implementation.
 
-Jump to [Architecture](/guides/architecture/) or the
+Jump to [Architecture](/guides/architecture/), [Agent liveness](/guides/agent-liveness/),
+or [Vault alignment](/guides/vault-alignment/) for the full model, or the
 [package reference](/reference/packages/).

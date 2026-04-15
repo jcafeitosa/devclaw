@@ -15,6 +15,10 @@
     "start": "bun run src/index.ts"
   },
   "dependencies": {
-    "@devclaw/core": "workspace:*"
+    "@devclaw/core": "workspace:*",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "ink": "7.0.0",
+    "react": "19.2.5"
   }
 }

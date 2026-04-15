@@ -1,12 +1,14 @@
 # Design: `devclaw` daemon
 
 > `packages/daemon/`. Elysia HTTP + WS expondo `@devclaw/core`.
+> Vault-aligned role: `53_gateway_daemon` pattern for a long-lived host process.
 
 ## 🎯 Goal
 
 Long-lived HTTP + WS process que multiplexa:
 - REST routes (mirror CLI: discover/auth/providers/bridges)
 - WS endpoint único com envelope `{channel, payload}` multiplexando: invoke-stream, events-fanout, future ACP/MCP
+- Gateway ownership of connection lifecycle and health
 - Graceful shutdown
 
 ACP + MCP completos ficam em PR separada.
@@ -26,6 +28,19 @@ ACP + MCP completos ficam em PR separada.
    - `POST /invoke` → executa `FallbackStrategy`, retorna `BridgeResponse` agregado
 3. WS `/ws` com envelope `{channel:"invoke"|"event", type, payload}` para streaming invoke events
 4. Graceful stop (SIGINT/SIGTERM) via `app.stop()`
+
+## Gateway alignment
+
+The vault's gateway model suggests this daemon should eventually own more than
+HTTP handlers:
+
+- connection lifecycle
+- supervision hooks
+- health and heartbeat monitoring
+- channel ownership
+- transport-aware event delivery
+
+That is the concrete "always on" boundary that makes agents feel live.
 
 ## 🔒 Invariants
 

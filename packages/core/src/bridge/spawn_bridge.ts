@@ -1,3 +1,4 @@
+import type { Moderator } from "../safety/types.ts"
 import { parseJsonlEvents, parseTextEvents } from "./event_stream.ts"
 import type { InjectableProcessRunner, ProcessHandle } from "./process_runner.ts"
 import { ProcessRunner } from "./process_runner.ts"
@@ -22,6 +23,8 @@ export interface SpawnBridgeConfig {
   estimateCost?: (req: BridgeRequest) => CostEstimate
   env?: (req: BridgeRequest) => Record<string, string> | undefined
   timeoutMs?: number
+  /** Safety kernel — when present, scans prompt (input) + text events (output). Non-bypassable per ADR-022. */
+  moderator?: Moderator
 }
 
 async function defaultWhich(name: string): Promise<string | null> {
@@ -67,6 +70,17 @@ export class SpawnBridge implements Bridge {
     const self = this
     return {
       async *[Symbol.asyncIterator]() {
+        if (self.cfg.moderator) {
+          const r = await self.cfg.moderator.check(req.prompt, "input")
+          if (!r.allowed) {
+            yield {
+              type: "error",
+              message: `safety: input blocked (${r.flags.map((f) => f.category).join(",")})`,
+              recoverable: false,
+            }
+            return
+          }
+        }
         const handle = self.runner.spawn([self.cfg.binary, ...self.cfg.args(req)], {
           cwd: req.cwd,
           stdin: req.prompt,
@@ -84,7 +98,21 @@ export class SpawnBridge implements Bridge {
             self.cfg.parser === "jsonl"
               ? parseJsonlEvents(handle.stdout, self.cli)
               : parseTextEvents(handle.stdout)
-          for await (const event of source) yield event
+          for await (const event of source) {
+            if (self.cfg.moderator && event.type === "text") {
+              const r = await self.cfg.moderator.check(event.content, "output")
+              if (!r.allowed) {
+                yield {
+                  type: "error",
+                  message: `safety: output blocked (${r.flags.map((f) => f.category).join(",")})`,
+                  recoverable: false,
+                }
+                handle.kill()
+                return
+              }
+            }
+            yield event
+          }
           const exit = await handle.exited
           await stderrPromise
           if (handle.timedOut) {

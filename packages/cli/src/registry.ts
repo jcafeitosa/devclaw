@@ -5,6 +5,7 @@ export interface CommandFlag {
   describe?: string
   type?: "string" | "boolean" | "number"
   required?: boolean
+  default?: string | number | boolean
 }
 
 export interface RunContext {
