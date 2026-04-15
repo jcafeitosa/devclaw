@@ -16,6 +16,7 @@ export interface BunRedisStreamsConfig {
 }
 
 export class BunRedisStreamsQueue implements QueueAdapter {
+  readonly kind = "redis-streams" as const
   private client: RedisClient
   private cfg: Required<BunRedisStreamsConfig>
 
@@ -84,7 +85,24 @@ export class BunRedisStreamsQueue implements QueueAdapter {
 
   async nack(queue: string, msg: QueueMessage, requeue = true): Promise<void> {
     if (requeue) {
-      // Leave pending so it can be reclaimed by another consumer via XCLAIM
+      // Requeue by acknowledging + deleting the original entry, then XADD a new entry to the tail.
+      // This prevents poison messages from stalling the consumer pending list and allows other consumers to pick it up.
+      await this.client.send("XACK", [queue, this.cfg.group, msg.id])
+      await this.client.send("XDEL", [queue, msg.id])
+      await this.client.send("XADD", [
+        queue,
+        "*",
+        "payload",
+        JSON.stringify(msg.payload),
+        "idem",
+        msg.idempotencyKey,
+        "attempts",
+        String(msg.attempts),
+        "ts",
+        String(Date.now()),
+        "origin",
+        "requeue",
+      ])
       return
     }
     // DLQ route: ack original, re-XADD to dlq

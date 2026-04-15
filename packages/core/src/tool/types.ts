@@ -24,7 +24,8 @@ export interface ToolInvocationCtx {
 
 export interface Tool<I = unknown, O = unknown> {
   id: string
-  name: string
+  kind?: string
+  name?: string
   description: string
   risk: RiskLevel
   inputSchema: ToolSchema<I>

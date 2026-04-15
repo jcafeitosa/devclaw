@@ -75,6 +75,10 @@ export const DEFAULT_OUTPUT_PATTERNS: ModerationPattern[] = [
   },
 ]
 
+function forMode(patterns: ModerationPattern[], mode: ModerationMode): ModerationPattern[] {
+  return patterns.map((pattern) => ({ ...pattern, modes: [mode] }))
+}
+
 function appliesTo(pattern: ModerationPattern, mode: ModerationMode): boolean {
   if (!pattern.modes) return true
   return pattern.modes.includes(mode)
@@ -129,4 +133,11 @@ export class CompositeModerator implements Moderator {
     }
     return out
   }
+}
+
+export function createDefaultModerator(): Moderator {
+  return new CompositeModerator([
+    new RegexPatternModerator(forMode(DEFAULT_INPUT_PATTERNS, "input")),
+    new RegexPatternModerator(forMode(DEFAULT_OUTPUT_PATTERNS, "output")),
+  ])
 }

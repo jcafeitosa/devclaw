@@ -1,10 +1,12 @@
 # Design: Subagents
 
 > Vault: `06_agent_os/subagents`. Phase 2 — paralelismo + isolamento + segurança.
+> Vault relationship: `agent_lifecycle` + `cognitive_engine` + `autonomy_engine`.
 
 ## 🎯 Goal
 
 Spawn subagents (filhos curta duração) com 5 isolation modes, restrições de tools/budget, 2 modes de operação (plan/execution), eventos lifecycle, auditoria.
+Subagents are a core liveness primitive: the parent keeps planning while children execute or inspect in parallel.
 
 ## 🧩 Componentes
 
@@ -20,6 +22,16 @@ Spawn subagents (filhos curta duração) com 5 isolation modes, restrições de 
 5. `SubagentRunner`: `spawn(spec)` → isolate → filter context → delegate to provided `executor` → emit lifecycle events → cleanup → `SubagentResult`.
 6. Integration: `CognitiveEngine.runSubagent(spec)` helper e events (`subagent_spawned`/`subagent_tool_called`/`subagent_completed`/`subagent_failed`).
 
+## Liveness fit
+
+Subagents make the agent system feel active because they:
+
+- preserve parent continuity while work is delegated
+- separate read-only analysis from mutating execution
+- keep worktree or sandbox cleanup explicit
+- emit auditable lifecycle events
+- allow specialist parallelism without losing the main loop
+
 ## 🔒 Invariants
 
 - Cleanup sempre roda (try/finally); worktree nunca fica órfão
@@ -27,6 +39,8 @@ Spawn subagents (filhos curta duração) com 5 isolation modes, restrições de 
 - Plan mode → executor não deve escrever (enforçado via tools allowlist)
 - Budget violation → abort + event
 - Audit entry por spawn + complete/fail
+- Subagent inherits workspace/session identity but only the allowed write
+  surface from the parent restriction set
 
 ## 📋 Plan (6 tasks)
 

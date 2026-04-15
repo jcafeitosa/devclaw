@@ -13,6 +13,8 @@ export interface RubricEvaluatorConfig {
   catalog?: ProviderCatalog
   providerId?: string
   model?: string
+  maxTokens?: number
+  temperature?: number
 }
 
 function parseScore(raw: string): number {
@@ -83,7 +85,8 @@ export class RubricEvaluator implements Evaluator {
       const raw = await this.cfg.catalog.generate(this.cfg.providerId, {
         prompt,
         model: this.cfg.model,
-        maxTokens: 32,
+        maxTokens: this.cfg.maxTokens ?? 32,
+        temperature: this.cfg.temperature,
       })
       return { id: c.id, score: parseScore(raw), weight }
     } catch (cause) {

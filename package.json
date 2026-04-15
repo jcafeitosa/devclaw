@@ -18,6 +18,8 @@
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "format": "biome format --write",
+    "db:generate": "bunx drizzle-kit generate --config ./packages/core/drizzle.config.dev.ts",
+    "db:migrate": "bun ./packages/core/src/db/migrate.ts",
     "dev": "turbo run dev --parallel",
     "dev:daemon": "bun run --filter '@devclaw/daemon' dev",
     "dev:docs": "bun run --filter '@devclaw/docs-site' dev",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.11",
     "@types/bun": "latest",
+    "drizzle-kit": "0.31.10",
     "turbo": "2.9.6",
     "typescript": "6.0.2"
   },
