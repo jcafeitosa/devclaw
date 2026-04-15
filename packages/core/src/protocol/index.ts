@@ -1,5 +1,7 @@
 export * from "./acp_client.ts"
+export * from "./acp_permission_store.ts"
 export * from "./acp_server.ts"
+export * from "./acp_session_store.ts"
 export * from "./acp_types.ts"
 export * from "./jsonrpc.ts"
 export * from "./mcp_builtin.ts"

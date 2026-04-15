@@ -43,3 +43,15 @@ description: Subpath exports published from @devclaw/core and runtime packages.
 | `/terminal` | Terminal session + registry |
 | `/tool` | Tool registry + executor + permissions |
 | `/work` | Work management (list/kanban/gantt) |
+
+## Vault map
+
+These subpaths correspond to the vault's operating model:
+
+- `06_agent_os` → `/cognitive`, `/context`, `/prompt`, `/memory`, `/skill`, `/tool`, `/subagent`
+- `53_gateway_daemon` → `@devclaw/daemon` and its websocket/lifecycle boundary
+- `05_communication_os` → `/comm`
+- `04_work_management` → `/work`
+- `07_learning` → `/learning`, `/reflection`
+- `43_self_correction` → `/correction`
+- `47_checkpoints_rewind` → `/checkpoint`

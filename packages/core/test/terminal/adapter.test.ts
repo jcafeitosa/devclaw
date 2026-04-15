@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test"
 import {
   BunPtyAdapter,
   NodePtyAdapter,
-  NotImplementedPtyError,
   type PtyAdapter,
   type PtyProcess,
   type PtySpawnOptions,
@@ -28,9 +27,9 @@ describe("PtyAdapter interface", () => {
     expect(code).toBe(0)
   })
 
-  test("NodePtyAdapter throws NotImplementedPtyError until node-pty is wired", () => {
+  test("NodePtyAdapter reports kind='node-pty'", () => {
     const adapter = new NodePtyAdapter()
-    expect(() => adapter.spawn({ command: ["echo"] })).toThrow(NotImplementedPtyError)
+    expect(adapter.kind).toBe("node-pty")
   })
 
   test("TerminalSession uses a custom adapter when provided", async () => {
@@ -89,7 +88,7 @@ describe("PtyAdapter interface", () => {
     expect(resizes).toEqual([{ cols: 200, rows: 50 }])
   })
 
-  test("TerminalSession defaults to BunPtyAdapter", async () => {
+  test("TerminalSession defaults to best available adapter", async () => {
     const s = new TerminalSession()
     let captured = ""
     s.events.on("output", ({ data }) => {

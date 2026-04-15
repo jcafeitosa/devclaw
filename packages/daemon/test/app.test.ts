@@ -5,7 +5,9 @@ import { join } from "node:path"
 import { FilesystemAuthStore } from "@devclaw/core/auth"
 import { BridgeRegistry, FallbackStrategy } from "@devclaw/core/bridge"
 import { ProviderCatalog } from "@devclaw/core/provider"
-import { createApp } from "../src/app.ts"
+import { createApp, issueAuthToken } from "../src/app.ts"
+
+const JWT_SECRET = "test-daemon-secret"
 
 async function setup() {
   const dir = await mkdtemp(join(tmpdir(), "devclaw-daemon-"))
@@ -26,7 +28,10 @@ async function setup() {
     catalog,
     fallbackProviderId: "stub",
   })
-  const app = createApp({ runtime: { authStore, catalog, bridges, fallback } })
+  const app = createApp({
+    runtime: { authStore, catalog, bridges, fallback },
+    auth: { jwtSecret: JWT_SECRET },
+  })
   return { app, dir, authStore }
 }
 
@@ -34,13 +39,23 @@ async function request(
   app: Awaited<ReturnType<typeof setup>>["app"],
   method: string,
   path: string,
-  body?: unknown,
+  opts: {
+    body?: unknown
+    headers?: Record<string, string>
+    host?: string
+  } = {},
 ) {
   return app.handle(
-    new Request(`http://localhost${path}`, {
+    new Request(`http://${opts.host ?? "127.0.0.1"}${path}`, {
       method,
-      headers: body ? { "content-type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
+      headers:
+        opts.body || opts.headers
+          ? {
+              ...(opts.body ? { "content-type": "application/json" } : {}),
+              ...opts.headers,
+            }
+          : undefined,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
     }),
   )
 }
@@ -67,6 +82,22 @@ describe("daemon app", () => {
     expect(((await res.json()) as { version: string }).version).toBe("0.0.0")
   })
 
+  test("GET /version rejects public request without bearer", async () => {
+    const res = await request(setupState.app, "GET", "/version", { host: "example.com" })
+    expect(res.status).toBe(401)
+    expect(await res.json()).toEqual({ error: "missing bearer token" })
+  })
+
+  test("GET /version accepts valid bearer token for non-loopback request", async () => {
+    const token = await issueAuthToken(JWT_SECRET, { sub: "test-client" })
+    const res = await request(setupState.app, "GET", "/version", {
+      host: "example.com",
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    expect(((await res.json()) as { version: string }).version).toBe("0.0.0")
+  })
+
   test("GET /discover returns report", async () => {
     const res = await request(setupState.app, "GET", `/discover?dir=${setupState.dir}`)
     expect(res.status).toBe(200)
@@ -88,7 +119,9 @@ describe("daemon app", () => {
 
   test("auth POST + GET + DELETE round-trip", async () => {
     const save = await request(setupState.app, "POST", "/auth/anthropic", {
-      key: "sk-test",
+      body: {
+        key: "sk-test",
+      },
     })
     expect(save.status).toBe(200)
     const list = await request(setupState.app, "GET", "/auth")
@@ -103,8 +136,10 @@ describe("daemon app", () => {
 
   test("POST /invoke falls back to provider catalog and returns text", async () => {
     const res = await request(setupState.app, "POST", "/invoke", {
-      prompt: "hello",
-      cli: "claude",
+      body: {
+        prompt: "hello",
+        cli: "claude",
+      },
     })
     expect(res.status).toBe(200)
     const body = (await res.json()) as { status: string; text: string }
@@ -113,7 +148,7 @@ describe("daemon app", () => {
   })
 
   test("invoke with empty prompt rejects", async () => {
-    const res = await request(setupState.app, "POST", "/invoke", { prompt: "" })
+    const res = await request(setupState.app, "POST", "/invoke", { body: { prompt: "" } })
     expect(res.status).toBe(422)
   })
 })

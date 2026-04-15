@@ -1,7 +1,7 @@
 import { chmod, mkdir, rename, stat, unlink } from "node:fs/promises"
 import { join } from "node:path"
 import { AsyncMutex } from "../util/async_mutex.ts"
-import { decrypt, deriveKey, encrypt } from "./file_crypto.ts"
+import { decryptEnvelope, encryptEnvelope } from "./file_crypto.ts"
 import type { AuthStore } from "./store.ts"
 import { type AuthInfo, authKey } from "./types.ts"
 
@@ -20,7 +20,6 @@ export class FilesystemAuthStore implements AuthStore {
   private readonly dir: string
   private readonly file: string
   private readonly passphrase: string
-  private keyPromise: Promise<CryptoKey> | null = null
   private readonly mu = new AsyncMutex()
 
   constructor(cfg: FilesystemAuthStoreConfig) {
@@ -29,22 +28,17 @@ export class FilesystemAuthStore implements AuthStore {
     this.passphrase = cfg.passphrase
   }
 
-  private key(): Promise<CryptoKey> {
-    if (!this.keyPromise) this.keyPromise = deriveKey(this.passphrase)
-    return this.keyPromise
-  }
-
   private async readSnapshot(): Promise<Snapshot> {
     const f = Bun.file(this.file)
     if (!(await f.exists())) return { version: 1, entries: {} }
     const blob = await f.arrayBuffer()
-    const plaintext = await decrypt(await this.key(), blob)
+    const plaintext = await decryptEnvelope(this.passphrase, blob)
     return JSON.parse(plaintext) as Snapshot
   }
 
   private async writeSnapshot(snap: Snapshot): Promise<void> {
     await mkdir(this.dir, { recursive: true, mode: 0o700 })
-    const blob = await encrypt(await this.key(), JSON.stringify(snap))
+    const blob = await encryptEnvelope(this.passphrase, JSON.stringify(snap))
     const tmp = `${this.file}.${process.pid}.${Date.now()}.tmp`
     await Bun.write(tmp, blob)
     await chmod(tmp, 0o600)

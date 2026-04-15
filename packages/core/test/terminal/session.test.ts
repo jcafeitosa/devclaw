@@ -37,18 +37,18 @@ describe("TerminalSession", () => {
     s.kill()
   })
 
-  test("stderr is captured via output event with stream='stderr'", async () => {
+  test("pty stderr is surfaced through output events", async () => {
     const s = new TerminalSession()
-    let stderrChunks = ""
-    s.events.on("output", ({ data, stream }) => {
-      if (stream === "stderr") stderrChunks += data
+    let chunks = ""
+    s.events.on("output", ({ data }) => {
+      chunks += data
     })
     const exit = new Promise<number>((resolve) => {
       s.events.on("exit", ({ exitCode }) => resolve(exitCode))
     })
     await s.start({ command: ["sh", "-c", "echo oops 1>&2"] })
     await exit
-    expect(stderrChunks).toContain("oops")
+    expect(chunks).toContain("oops")
   })
 
   test("size getter returns last known dimensions", async () => {

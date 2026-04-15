@@ -18,6 +18,7 @@ export interface BridgeWorkspace {
 
 export interface BridgeRequest {
   taskId: string
+  sessionId?: string
   agentId: string
   cli: CliId
   cwd: string

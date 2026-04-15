@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import { MemoryAuditSink } from "../../src/audit/sink.ts"
 import { FallbackStrategy } from "../../src/bridge/fallback.ts"
 import { BridgeRegistry } from "../../src/bridge/registry.ts"
 import type {
@@ -8,7 +9,11 @@ import type {
   BridgeRequest,
   Capabilities,
 } from "../../src/bridge/types.ts"
+import { BudgetEnforcer, BudgetExceededError } from "../../src/cost/budget.ts"
+import { SafetyKernel } from "../../src/kernel/index.ts"
+import { PermissionEvaluator } from "../../src/permission/evaluator.ts"
 import { ProviderCatalog } from "../../src/provider/catalog.ts"
+import { createDefaultModerator, RegexPatternModerator } from "../../src/safety/moderator.ts"
 
 function mock(cli: string, opts: Partial<Bridge> = {}): Bridge {
   const events: BridgeEvent[] = [
@@ -137,5 +142,88 @@ describe("FallbackStrategy", () => {
     const f = new FallbackStrategy({ registry, catalog, fallbackProviderId: "openai" })
     const events = await collect(f.execute(req))
     expect(events.some((e) => e.type === "log" && e.message.includes("fallback"))).toBe(true)
+  })
+
+  test("blocks execution before bridge/provider when input moderation flags prompt", async () => {
+    const registry = new BridgeRegistry()
+    registry.register(mock("claude"))
+    const catalog = new ProviderCatalog()
+    const f = new FallbackStrategy({
+      registry,
+      catalog,
+      moderator: new RegexPatternModerator([
+        {
+          name: "warn_token",
+          category: "prompt_injection",
+          pattern: /do/g,
+          severity: "warn",
+        },
+      ]),
+    })
+    const events = await collect(f.execute(req))
+    expect(
+      events.some(
+        (event) => event.type === "error" && event.message.includes("safety blocked input"),
+      ),
+    ).toBe(true)
+    expect(events.some((event) => event.type === "text")).toBe(false)
+  })
+
+  test("routes bridge execution through kernel when configured", async () => {
+    const registry = new BridgeRegistry()
+    let called = false
+    registry.register(
+      mock("claude", {
+        execute() {
+          called = true
+          return (async function* () {
+            yield { type: "text", content: "from claude" } as BridgeEvent
+            yield { type: "completed" } as BridgeEvent
+          })()
+        },
+      }),
+    )
+    const f = new FallbackStrategy({
+      registry,
+      catalog: new ProviderCatalog(),
+      kernel: new SafetyKernel({
+        permission: new PermissionEvaluator({
+          rules: [
+            { tool: "claude", action: "bridge.execute", decision: "deny", reason: "blocked" },
+          ],
+          defaultDecision: "allow",
+        }),
+        safety: createDefaultModerator(),
+        audit: new MemoryAuditSink(),
+      }),
+    })
+    await expect(collect(f.execute(req))).rejects.toThrow(/permission denied/i)
+    expect(called).toBe(false)
+  })
+
+  test("budget hard-stop rejects before bridge execution", async () => {
+    let called = false
+    const registry = new BridgeRegistry()
+    registry.register(
+      mock("claude", {
+        estimateCost() {
+          return { costUsd: 0.2, tokensIn: 0, tokensOut: 0, subscriptionCovered: true }
+        },
+        execute() {
+          called = true
+          return (async function* () {
+            yield { type: "text", content: "nope" } as BridgeEvent
+            yield { type: "completed" } as BridgeEvent
+          })()
+        },
+      }),
+    )
+    const f = new FallbackStrategy({
+      registry,
+      catalog: new ProviderCatalog(),
+      budget: new BudgetEnforcer({ limits: { taskUsd: 0.15, sessionUsd: 2, dayUsd: 10 } }),
+    })
+    await expect(collect(f.execute(req))).rejects.toBeInstanceOf(BudgetExceededError)
+    expect(called).toBe(false)
   })
 })

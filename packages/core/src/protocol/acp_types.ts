@@ -36,7 +36,11 @@ export interface ACPSessionInfo {
   createdAt: number
   cwd?: string
   agentName?: string
+  state?: ACPSessionState
+  updatedAt?: number
 }
+
+export type ACPSessionState = "idle" | "running" | "awaiting_permission" | "closed"
 
 export interface ACPSessionNewParams {
   cwd?: string

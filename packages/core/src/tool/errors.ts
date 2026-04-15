@@ -1,4 +1,4 @@
-export type ToolErrorCode = "BASE" | "VALIDATION" | "PERMISSION" | "TIMEOUT" | "EXEC"
+export type ToolErrorCode = "BASE" | "VALIDATION" | "PERMISSION" | "TIMEOUT" | "EXEC" | "SAFETY"
 
 export class ToolError extends Error {
   readonly code: ToolErrorCode
@@ -47,5 +47,16 @@ export class ToolExecError extends ToolError {
     super(`tool ${toolId}: execution failed: ${msg}`, "EXEC", toolId)
     this.name = "ToolExecError"
     this.cause = cause
+  }
+}
+
+export class ToolSafetyError extends ToolError {
+  readonly mode: "input" | "output"
+  readonly categories: string[]
+  constructor(toolId: string, mode: "input" | "output", categories: string[]) {
+    super(`tool ${toolId}: safety ${mode} blocked (${categories.join(",")})`, "SAFETY", toolId)
+    this.name = "ToolSafetyError"
+    this.mode = mode
+    this.categories = [...categories]
   }
 }

@@ -2,7 +2,7 @@ import { trimToBudget } from "./budget.ts"
 import type { MultiSourceCollector } from "./collector.ts"
 import { ContextEmptyError, ContextQualityError } from "./errors.ts"
 import { applyThresholdFilter } from "./filter.ts"
-import { OverlapRanker } from "./ranker.ts"
+import { OverlapRanker, TokenAwareRanker } from "./ranker.ts"
 import type {
   ContextDiagnostic,
   ContextItem,
@@ -27,7 +27,7 @@ export class ContextAssembler {
   constructor(cfg: AssemblerConfig) {
     this.cfg = {
       collector: cfg.collector,
-      ranker: cfg.ranker ?? new OverlapRanker(),
+      ranker: cfg.ranker ?? new TokenAwareRanker(new OverlapRanker()),
       defaultBudgetTokens: cfg.defaultBudgetTokens ?? 8000,
       defaultMinQualityScore: cfg.defaultMinQualityScore ?? 0,
       relevantDataLimit: cfg.relevantDataLimit ?? 5,

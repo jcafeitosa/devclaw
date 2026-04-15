@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { OverlapRanker, tokenize } from "../../src/context/ranker.ts"
+import { OverlapRanker, TokenAwareRanker, tokenize } from "../../src/context/ranker.ts"
 import type { ContextItem, ContextRequest } from "../../src/context/types.ts"
 
 function item(id: string, content: string): ContextItem {
@@ -45,5 +45,17 @@ describe("OverlapRanker", () => {
       hints: ["memory", "leak"],
     }
     expect(ranker.score(req, item("a", "memory leak in allocator"))).toBeGreaterThan(0)
+  })
+})
+
+describe("TokenAwareRanker", () => {
+  test("penalizes longer items with equal relevance", () => {
+    const base = new OverlapRanker()
+    const ranker = new TokenAwareRanker(base, { alpha: 0.35 })
+    const req: ContextRequest = { goal: "apple banana", expectedOutput: "x" }
+    const short = item("a", "apple banana")
+    const long = item("b", "apple banana orange pear kiwi")
+    expect(base.score(req, short)).toBeCloseTo(base.score(req, long), 5)
+    expect(ranker.score(req, short)).toBeGreaterThan(ranker.score(req, long))
   })
 })
