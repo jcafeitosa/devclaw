@@ -23,11 +23,14 @@ describe("C-04: Provider batch API (RED)", () => {
     const inputs: GenerateOpts[] = [{ prompt: "one" }, { prompt: "two" }]
 
     // Should fail until generateBatch is implemented
-    // @ts-expect-error
-    const res = await (catalog as unknown as { generateBatch: (id: string, inputs: GenerateOpts[]) => Promise<GenerateResult[]> }).generateBatch("mock", inputs)
+    const res = await (
+      catalog as unknown as {
+        generateBatch: (id: string, inputs: GenerateOpts[]) => Promise<GenerateResult[]>
+      }
+    ).generateBatch("mock", inputs)
 
     expect(Array.isArray(res)).toBe(true)
     expect(res.length).toBe(2)
-    expect(res[0].text).toBe("ok: one")
+    expect(res[0]!.text).toBe("ok: one")
   })
 })

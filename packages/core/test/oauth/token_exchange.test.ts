@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test"
+import { beforeEach, describe, expect, test } from "bun:test"
 import { OAuthTokenError } from "../../src/oauth/errors.ts"
 import {
   exchangeCode,
@@ -6,26 +6,16 @@ import {
   type TokenEndpoint,
 } from "../../src/oauth/token_exchange.ts"
 
-let mockServer: ReturnType<typeof Bun.serve> | null = null
 let lastBody: Record<string, string> = {}
 
 function startMock(respond: (body: Record<string, string>) => Response) {
-  return Bun.serve({
-    port: 0,
-    hostname: "127.0.0.1",
-    fetch: async (req) => {
-      const json = (await req.json()) as Record<string, string>
-      lastBody = json
-      return respond(json)
-    },
-  })
+  const fetchFn = async (_input: string | URL | Request, init?: RequestInit | BunFetchRequestInit) => {
+    const json = JSON.parse(String(init?.body ?? "{}")) as Record<string, string>
+    lastBody = json
+    return respond(json)
+  }
+  return { endpoint: "http://mock-token.test/token" as TokenEndpoint, fetchFn }
 }
-
-afterEach(() => {
-  mockServer?.stop(true)
-  mockServer = null
-  lastBody = {}
-})
 
 beforeEach(() => {
   lastBody = {}
@@ -33,7 +23,7 @@ beforeEach(() => {
 
 describe("exchangeCode", () => {
   test("POSTs expected fields and returns OAuthAuth", async () => {
-    mockServer = startMock(
+    const { endpoint, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -46,13 +36,13 @@ describe("exchangeCode", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const endpoint: TokenEndpoint = `http://127.0.0.1:${mockServer.port}/token`
     const out = await exchangeCode({
       endpoint,
       clientId: "cli",
       code: "AUTHCODE",
       codeVerifier: "VERIFIER",
       redirectUri: "http://localhost:1455/auth/callback",
+      fetchFn,
     })
     expect(lastBody).toMatchObject({
       grant_type: "authorization_code",
@@ -71,20 +61,20 @@ describe("exchangeCode", () => {
   })
 
   test("throws OAuthTokenError on non-2xx", async () => {
-    mockServer = startMock(
+    const { endpoint, fetchFn } = startMock(
       () =>
         new Response(JSON.stringify({ error: "invalid_grant" }), {
           status: 400,
           headers: { "content-type": "application/json" },
         }),
     )
-    const endpoint: TokenEndpoint = `http://127.0.0.1:${mockServer.port}/token`
     const promise = exchangeCode({
       endpoint,
       clientId: "cli",
       code: "bad",
       codeVerifier: "v",
       redirectUri: "r",
+      fetchFn,
     })
     await expect(promise).rejects.toBeInstanceOf(OAuthTokenError)
   })
@@ -92,7 +82,7 @@ describe("exchangeCode", () => {
 
 describe("refreshAccessToken", () => {
   test("POSTs refresh_token grant and returns fresh OAuthAuth", async () => {
-    mockServer = startMock(
+    const { endpoint, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -104,11 +94,11 @@ describe("refreshAccessToken", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const endpoint: TokenEndpoint = `http://127.0.0.1:${mockServer.port}/token`
     const out = await refreshAccessToken({
       endpoint,
       clientId: "cli",
       refreshToken: "old-ref",
+      fetchFn,
     })
     expect(lastBody).toMatchObject({
       grant_type: "refresh_token",
@@ -120,7 +110,7 @@ describe("refreshAccessToken", () => {
   })
 
   test("preserves old refresh_token when server omits it", async () => {
-    mockServer = startMock(
+    const { endpoint, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -131,11 +121,11 @@ describe("refreshAccessToken", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const endpoint: TokenEndpoint = `http://127.0.0.1:${mockServer.port}/token`
     const out = await refreshAccessToken({
       endpoint,
       clientId: "cli",
       refreshToken: "persist-me",
+      fetchFn,
     })
     expect(out.refreshToken).toBe("persist-me")
   })

@@ -3,35 +3,32 @@ import { makeAnthropicAdapter } from "../../src/provider/anthropic_adapter.ts"
 import { ProviderCatalog } from "../../src/provider/catalog.ts"
 import { makeOpenAIAdapter } from "../../src/provider/openai_adapter.ts"
 
-let server: ReturnType<typeof Bun.serve> | null = null
 let lastRequest: { headers: Record<string, string>; body: unknown } | null = null
 
 afterEach(() => {
-  server?.stop(true)
-  server = null
   lastRequest = null
 })
 
 function startMock(respond: () => Response) {
-  server = Bun.serve({
-    port: 0,
-    hostname: "127.0.0.1",
-    fetch: async (req) => {
-      const body = (await req.json()) as unknown
-      const headers: Record<string, string> = {}
-      req.headers.forEach((v, k) => {
+  const fetchFn = async (_input: string | URL | Request, init?: RequestInit | BunFetchRequestInit) => {
+    const body = JSON.parse(String(init?.body ?? "{}")) as unknown
+    const headers: Record<string, string> = {}
+    if (init?.headers instanceof Headers) {
+      init.headers.forEach((v, k) => {
         headers[k] = v
       })
-      lastRequest = { headers, body }
-      return respond()
-    },
-  })
-  return `http://127.0.0.1:${server.port}`
+    } else if (init?.headers) {
+      for (const [k, v] of Object.entries(init.headers)) headers[k] = String(v)
+    }
+    lastRequest = { headers, body }
+    return respond()
+  }
+  return { baseUrl: "http://mock-provider.test", fetchFn }
 }
 
 describe("Anthropic — generateWithUsage + prompt cache", () => {
   test("returns text + model + usage.{input,output}_tokens", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -43,7 +40,7 @@ describe("Anthropic — generateWithUsage + prompt cache", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl: base })
+    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl, fetch: fetchFn })
     const res = await adapter.generateWithUsage!({ prompt: "hi" })
     expect(res.text).toBe("hello")
     expect(res.model).toBe("claude-sonnet-4-5-20251001")
@@ -52,7 +49,7 @@ describe("Anthropic — generateWithUsage + prompt cache", () => {
   })
 
   test("cacheSystem:true sends system as content block with cache_control ephemeral", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -64,7 +61,7 @@ describe("Anthropic — generateWithUsage + prompt cache", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl: base })
+    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl, fetch: fetchFn })
     await adapter.generateWithUsage!({ prompt: "x", system: "you are helpful", cacheSystem: true })
     const body = lastRequest?.body as {
       system: Array<{ type: string; text: string; cache_control?: { type: string } }>
@@ -78,7 +75,7 @@ describe("Anthropic — generateWithUsage + prompt cache", () => {
   })
 
   test("cacheSystem omitted sends system as plain string (backward compat)", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -89,14 +86,14 @@ describe("Anthropic — generateWithUsage + prompt cache", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl: base })
+    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl, fetch: fetchFn })
     await adapter.generateWithUsage!({ prompt: "x", system: "legacy" })
     const body = lastRequest?.body as { system: unknown }
     expect(body.system).toBe("legacy")
   })
 
   test("captures cache_read_input_tokens + cache_creation_input_tokens", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -113,14 +110,14 @@ describe("Anthropic — generateWithUsage + prompt cache", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl: base })
+    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl, fetch: fetchFn })
     const res = await adapter.generateWithUsage!({ prompt: "x" })
     expect(res.usage.cache_read_input_tokens).toBe(900)
     expect(res.usage.cache_creation_input_tokens).toBe(0)
   })
 
   test("generate() backward-compat returns text string only", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -131,14 +128,14 @@ describe("Anthropic — generateWithUsage + prompt cache", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl: base })
+    const adapter = makeAnthropicAdapter({ apiKey: "k", baseUrl, fetch: fetchFn })
     expect(await adapter.generate({ prompt: "x" })).toBe("legacy")
   })
 })
 
 describe("OpenAI — generateWithUsage", () => {
   test("returns text + model + usage (input/output/cache)", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -154,7 +151,7 @@ describe("OpenAI — generateWithUsage", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeOpenAIAdapter({ apiKey: "k", baseUrl: base })
+    const adapter = makeOpenAIAdapter({ apiKey: "k", baseUrl, fetch: fetchFn })
     const res = await adapter.generateWithUsage!({ prompt: "x" })
     expect(res.text).toBe("hi")
     expect(res.model).toBe("gpt-4o-mini")
@@ -164,7 +161,7 @@ describe("OpenAI — generateWithUsage", () => {
   })
 
   test("handles missing prompt_tokens_details gracefully (no cache info)", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -176,7 +173,7 @@ describe("OpenAI — generateWithUsage", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeOpenAIAdapter({ apiKey: "k", baseUrl: base })
+    const adapter = makeOpenAIAdapter({ apiKey: "k", baseUrl, fetch: fetchFn })
     const res = await adapter.generateWithUsage!({ prompt: "x" })
     expect(res.usage.input_tokens).toBe(8)
     expect(res.usage.output_tokens).toBe(2)
