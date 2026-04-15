@@ -65,6 +65,29 @@ describe("ContextAssembler", () => {
     expect(obj.diagnostics.some((d) => d.message.toLowerCase().includes("budget"))).toBe(true)
   })
 
+  test("token-aware ranker prefers shorter equally relevant items", async () => {
+    const src = fixed("kb", [
+      {
+        id: "long",
+        sourceId: "kb",
+        kind: "doc",
+        content: "migrate postgres schema with additional unrelated filler words",
+      },
+      {
+        id: "short",
+        sourceId: "kb",
+        kind: "doc",
+        content: "migrate postgres schema",
+      },
+    ])
+    const a = new ContextAssembler({ collector: new MultiSourceCollector([src]) })
+    const obj = await a.assemble({
+      goal: "migrate postgres schema",
+      expectedOutput: "plan",
+    })
+    expect(obj.items[0]?.id).toBe("short")
+  })
+
   test("throws ContextQualityError when all items below minQualityScore", async () => {
     const src = fixed("kb", [
       { id: "k", sourceId: "kb", kind: "text", content: "totally unrelated" },

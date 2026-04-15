@@ -28,9 +28,11 @@ export function makeInvokeCommand(getFallback: () => Promise<FallbackStrategy>):
         | "aider"
       const taskId =
         (typeof args.flags.task === "string" && args.flags.task) || `task_${Date.now()}`
+      const sessionId = `session_${Date.now()}`
       const fallback = await getFallback()
       const events = fallback.execute({
         taskId,
+        sessionId,
         agentId: "cli",
         cli,
         cwd: process.cwd(),

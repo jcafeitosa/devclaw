@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./adapter": "./src/adapter/index.ts",
     "./audit": "./src/audit/index.ts",
     "./auth": "./src/auth/index.ts",
     "./bridge": "./src/bridge/index.ts",
@@ -13,12 +14,15 @@
     "./checkpoint": "./src/checkpoint/index.ts",
     "./cognitive": "./src/cognitive/index.ts",
     "./comm": "./src/comm/index.ts",
+    "./consensus": "./src/consensus/index.ts",
     "./context": "./src/context/index.ts",
     "./correction": "./src/correction/index.ts",
     "./cost": "./src/cost/index.ts",
+    "./db": "./src/db/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./governance": "./src/governance/index.ts",
     "./hook": "./src/hook/index.ts",
+    "./kernel": "./src/kernel/index.ts",
     "./learning": "./src/learning/index.ts",
     "./lsp": "./src/lsp/index.ts",
     "./memory": "./src/memory/index.ts",
@@ -44,6 +48,15 @@
   },
   "scripts": {
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate --config ./drizzle.config.dev.ts",
+    "db:migrate": "bun ./src/db/migrate.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "3.0.63",
+    "@ai-sdk/openai-compatible": "2.0.41",
+    "ai": "6.0.159",
+    "drizzle-orm": "0.44.5",
+    "node-pty": "1.1.0"
   }
 }

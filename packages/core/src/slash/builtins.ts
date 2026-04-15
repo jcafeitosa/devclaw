@@ -66,6 +66,25 @@ Output sections:
 - 💡 Suggestions
 Include file:line pointers and suggested fixes.`
 
+const PLAN_BODY = `---
+description: Turn a goal into a short execution plan
+agents: [coordinator, architect]
+tools: [Read, Grep]
+isolation: worktree
+timeout_minutes: 15
+args:
+  - name: goal
+    type: string
+    required: true
+---
+You are invoked as /plan. Turn "{{args.goal}}" into a small execution plan with ordered steps.
+
+Return:
+- Goal
+- Steps
+- Risks
+- Suggested validation`
+
 const SECURITY_REVIEW_BODY = `---
 description: Threat model + vulnerability scan of given scope
 agents: [security, architect, reviewer]
@@ -85,10 +104,133 @@ Produce:
 - Remediation proposals
 - Risk score per finding`
 
+const DOCTOR_BODY = `---
+description: Diagnose CLI bridge health + verify SHA256 pin
+agents: [coordinator, security]
+tools: [Read, Bash]
+isolation: none
+timeout_minutes: 10
+args: []
+---
+You are invoked as /doctor. Report the health of Devclaw's CLI bridges.
+
+Checklist:
+1. Run \`devclaw doctor\` — capture status (ok / drift / missing).
+2. If drift: show expected vs actual SHA256; suggest \`devclaw doctor --pin\` after the operator confirms the binary.
+3. If missing: show install instructions for the CLI (claude, codex, gemini, aider).
+4. Summarize in 3 bullets: overall status, actions required, follow-up.`
+
+const INIT_BODY = `---
+description: Bootstrap a new project with devclaw.json + .devclaw layout
+agents: [coordinator, architect]
+tools: [Read, Write]
+isolation: worktree
+timeout_minutes: 15
+args:
+  - name: path
+    type: string
+    default: .
+---
+You are invoked as /init. Initialize a Devclaw workspace at "{{args.path}}".
+
+Steps:
+1. Ensure devclaw.json exists (create if missing); pick \`defaultProvider\` from what the user has auth for.
+2. Create .devclaw/ layout (locks/, cache/, logs/).
+3. Run discovery — report detected stack, CLIs, and conventions.
+4. Suggest which slash commands are immediately useful for this repo (consensus, tdd, code-review).`
+
+const CHECKPOINT_BODY = `---
+description: Create a checkpoint and report the recovery reference
+agents: [coordinator, reviewer]
+tools: [Read, Bash, Git]
+isolation: worktree
+timeout_minutes: 20
+args:
+  - name: name
+    type: string
+    default: auto
+---
+You are invoked as /checkpoint. Create a checkpoint named "{{args.name}}" and report how to restore it.`
+
+const REWIND_BODY = `---
+description: Restore the last safe checkpoint
+agents: [coordinator, reviewer]
+tools: [Read, Bash, Git]
+isolation: worktree
+timeout_minutes: 20
+args:
+  - name: checkpoint
+    type: string
+    required: true
+---
+You are invoked as /rewind. Restore checkpoint "{{args.checkpoint}}" and summarize the rollback.`
+
+const TASKS_BODY = `---
+description: Show the current task list and next action
+agents: [coordinator]
+tools: [Read]
+isolation: none
+timeout_minutes: 10
+args: []
+---
+You are invoked as /tasks. Summarize the active tasks, highlight blockers, and name the next action.`
+
+const CLEAR_BODY = `---
+description: Clear the current working context and state
+agents: [coordinator]
+tools: [Read]
+isolation: none
+timeout_minutes: 5
+args: []
+---
+You are invoked as /clear. Clear the current conversational context and confirm readiness for the next task.`
+
+const HELP_BODY = `---
+description: List available slash commands
+agents: [coordinator]
+tools: [Read]
+isolation: none
+timeout_minutes: 5
+args: []
+---
+You are invoked as /help. List the available slash commands and what each one is for.`
+
+const CONSENSUS_BODY = `---
+description: Cross-CLI fan-out and winner selection for a prompt
+agents: [coordinator, reviewer, architect]
+tools: [Read, Bash]
+isolation: worktree
+timeout_minutes: 30
+args:
+  - name: prompt
+    type: string
+    required: true
+  - name: cli
+    type: string
+    default: claude,codex,gemini
+---
+You are invoked as /consensus. Fan out the prompt "{{args.prompt}}" across the available CLI bridges and pick the best response.
+If "{{args.cli}}" is provided, restrict the fan-out to that CLI subset.
+
+Return:
+- Winner CLI
+- Winner text
+- Score table
+- Short rationale for the decision`
+
 export const BUILTIN_COMMAND_SOURCES: Record<string, string> = {
   architect: ARCHITECT_BODY,
+  checkpoint: CHECKPOINT_BODY,
+  consensus: CONSENSUS_BODY,
+  clear: CLEAR_BODY,
   tdd: TDD_BODY,
   "code-review": CODE_REVIEW_BODY,
+  doctor: DOCTOR_BODY,
+  help: HELP_BODY,
+  init: INIT_BODY,
+  plan: PLAN_BODY,
+  rewind: REWIND_BODY,
+  tasks: TASKS_BODY,
   "security-review": SECURITY_REVIEW_BODY,
 }
 

@@ -34,13 +34,19 @@ describe("BunRedisStreamsQueue (integration)", () => {
     expect(await adapter.depth(queue)).toBe(0)
   })
 
-  test("nack with requeue returns message to pending for reclaim", async () => {
+  test("nack with requeue re-XADDs the message to the queue (no reclaim)", async () => {
     await adapter.enqueue(queue, { n: 2 })
     const [m1] = await adapter.dequeue(queue, { count: 1, timeoutMs: 1000 })
     await adapter.nack(queue, m1!, true)
     const reclaimed = await adapter.reclaim(queue, 0)
-    expect(reclaimed.some((r) => r.id === m1!.id)).toBe(true)
-    await adapter.ack(queue, m1!)
+    // since we re-XADDed, original id should not be present in pending
+    expect(reclaimed.some((r) => r.id === m1!.id)).toBe(false)
+    // and new message exists in the queue depth
+    const depth = await adapter.depth(queue)
+    expect(depth).toBeGreaterThanOrEqual(1)
+    // drain the new message if present
+    const [m2] = await adapter.dequeue(queue, { count: 1, timeoutMs: 1000 })
+    if (m2) await adapter.ack(queue, m2)
   })
 
   test("nack without requeue routes to DLQ", async () => {

@@ -1,3 +1,4 @@
+export * from "./adapter/index.ts"
 export * from "./auth/index.ts"
 export * from "./bridge/index.ts"
 export * from "./cache/index.ts"
@@ -5,12 +6,26 @@ export * from "./capability/index.ts"
 export * from "./checkpoint/index.ts"
 export * from "./cognitive/index.ts"
 export * from "./comm/index.ts"
+export * from "./consensus/index.ts"
 export * from "./context/index.ts"
 export * from "./correction/index.ts"
-export * from "./cost/index.ts"
+export {
+  BudgetEnforcer,
+  type BudgetEnforcerConfig,
+  type BudgetLimits,
+  type BudgetRecordInput,
+  type BudgetUsage,
+  type BudgetWarning,
+  DEFAULT_BUDGET_LIMITS,
+  makeDefaultBudgetEnforcer,
+} from "./cost/budget.ts"
+export * from "./cost/ratecard.ts"
+export * from "./cost/router.ts"
+export * from "./cost/tracker.ts"
 export * from "./discovery/index.ts"
 export * from "./governance/index.ts"
 export * from "./hook/index.ts"
+export * from "./kernel/index.ts"
 export * from "./learning/index.ts"
 export * from "./lsp/index.ts"
 export * from "./memory/index.ts"

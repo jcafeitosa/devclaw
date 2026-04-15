@@ -31,8 +31,49 @@ jobs:
         with:
           bun-version: 1.3.12
       - run: bun install --frozen-lockfile
-      - run: bun run lint
-      - run: bun run typecheck
-      - run: bun test
+      - name: Lint (strict)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Running biome lint (strict)"
+          # Capture output and exit code to detect warnings
+          bun run lint 2>&1 | tee lint.out || true
+          lint_exit=${PIPESTATUS[0]}
+          if grep -E -i "warning|warn" lint.out >/dev/null; then
+            echo "::error::Lint warnings found (zero-tolerance). Failing."
+            cat lint.out
+            exit 1
+          fi
+          if [ "$lint_exit" -ne 0 ]; then
+            echo "::error::biome returned non-zero exit code"
+            cat lint.out
+            exit $lint_exit
+          fi
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Format check
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Run formatter and fail if it produces changes
+          bun run format
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Formatting diffs detected. Run 'bun run format' locally and commit changes."
+            git --no-pager diff --name-only
+            exit 1
+          fi
+      - name: Run tests
+        run: bun test
+      - name: Scan for TODO/FIXME
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fail if TODO or FIXME comments are present anywhere in tracked files
+          matches=$(git grep -n -I -E "TODO\b|FIXME\b" || true)
+          if [ -n "$matches" ]; then
+            echo "::error::Found TODO/FIXME comments; zero-tolerance policy requires removing or attaching an issue id"
+            echo "$matches"
+            exit 1
+          fi
       - name: Build docs site
         run: bun run --cwd packages/docs-site build

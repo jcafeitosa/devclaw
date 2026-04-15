@@ -1,1 +1,1 @@
-export { type AppConfig, createApp, type DaemonRuntime, VERSION } from "./app.ts"
+export { type AppConfig, createApp, type DaemonRuntime, issueAuthToken, VERSION } from "./app.ts"
