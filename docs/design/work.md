@@ -1,10 +1,12 @@
 # Design: Work Management
 
 > Vault: `04_work_management/`. Phase 2 — final item.
+> Vault relationship: `communication_os` + `autonomy_engine` + `self_correction`.
 
 ## 🎯 Goal
 
 Entidades canônicas + dependências (8 types + cycle detect + critical path) + workflow engine (6 triggers + 6 actions) + 3 views (list/kanban/gantt).
+Work is the durable carrier of agent activity across turns and wakes.
 
 ## 🧩 Componentes
 
@@ -14,6 +16,16 @@ Entidades canônicas + dependências (8 types + cycle detect + critical path) + 
 4. `WorkflowEngine`: rule list with triggers (`item-created`/`item-moved`/`dep-unblocked`/`budget-exceeded`/`deadline-missed`/`agent-failed`) → actions (`reassign`/`create-subtask`/`trigger-agent`/`notify`/`escalate`/`freeze`).
 5. Views: `toListView(filter)`, `toKanbanView(columnField)`, `toGanttView(now)` com critical path.
 6. Barrel + `@devclaw/core/work` subpath.
+
+## Liveness fit
+
+Work management is where autonomy becomes visible:
+
+- state transitions show what is alive, blocked, or done
+- dependencies can wake other work
+- workflow rules turn events into proactive behavior
+- critical path shows what should happen next
+- freeze/escalation protect the system when continuation is unsafe
 
 ## 📋 Plan (6 tasks)
 
@@ -31,3 +43,4 @@ Entidades canônicas + dependências (8 types + cycle detect + critical path) + 
 - 0 skip/fail/info/suppressions
 - Critical path correctness test (multi-path DAG)
 - Cycle rejection test
+- Trigger/action matrix test for the core workflow rules

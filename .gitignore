@@ -8,6 +8,9 @@ coverage/
 .env.local
 bun.lockb
 .astro/
+packages/core/dev.db
+packages/core/dev.db-shm
+packages/core/dev.db-wal
 
 # Agent coordination locks (ephemeral, machine-local)
 .devclaw/locks/*.lock

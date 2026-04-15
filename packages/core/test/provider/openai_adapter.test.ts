@@ -2,35 +2,35 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { ProviderError } from "../../src/provider/catalog.ts"
 import { makeOpenAIAdapter } from "../../src/provider/openai_adapter.ts"
 
-let server: ReturnType<typeof Bun.serve> | null = null
 let lastRequest: { headers: Record<string, string>; body: unknown } | null = null
 
 afterEach(() => {
-  server?.stop(true)
-  server = null
   lastRequest = null
 })
 
 function startMock(respond: () => Response) {
-  server = Bun.serve({
-    port: 0,
-    hostname: "127.0.0.1",
-    fetch: async (req) => {
-      const body = (await req.json()) as unknown
-      const headers: Record<string, string> = {}
-      req.headers.forEach((v, k) => {
+  const fetchFn = async (
+    _input: string | URL | Request,
+    init?: RequestInit | BunFetchRequestInit,
+  ) => {
+    const body = JSON.parse(String(init?.body ?? "{}")) as unknown
+    const headers: Record<string, string> = {}
+    if (init?.headers instanceof Headers) {
+      init.headers.forEach((v, k) => {
         headers[k] = v
       })
-      lastRequest = { headers, body }
-      return respond()
-    },
-  })
-  return `http://127.0.0.1:${server.port}`
+    } else if (init?.headers) {
+      for (const [k, v] of Object.entries(init.headers)) headers[k] = String(v)
+    }
+    lastRequest = { headers, body }
+    return respond()
+  }
+  return { baseUrl: "http://mock-openai.test", fetchFn }
 }
 
 describe("OpenAIAdapter", () => {
   test("calls /v1/chat/completions with bearer and returns content", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({
@@ -40,7 +40,7 @@ describe("OpenAIAdapter", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeOpenAIAdapter({ apiKey: "sk-openai", baseUrl: base })
+    const adapter = makeOpenAIAdapter({ apiKey: "sk-openai", baseUrl, fetch: fetchFn })
     const out = await adapter.generate({ prompt: "Hi", model: "gpt-4o-mini" })
     expect(out).toBe("hello")
     expect(lastRequest?.headers.authorization).toBe("Bearer sk-openai")
@@ -53,14 +53,14 @@ describe("OpenAIAdapter", () => {
   })
 
   test("prepends system message when system opt provided", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({ id: "c", choices: [{ message: { role: "assistant", content: "k" } }] }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeOpenAIAdapter({ apiKey: "k", baseUrl: base })
+    const adapter = makeOpenAIAdapter({ apiKey: "k", baseUrl, fetch: fetchFn })
     await adapter.generate({ prompt: "x", system: "sys" })
     const body = lastRequest?.body as { messages: { role: string; content: string }[] }
     expect(body.messages[0]).toEqual({ role: "system", content: "sys" })
@@ -68,26 +68,26 @@ describe("OpenAIAdapter", () => {
   })
 
   test("throws ProviderError on 4xx", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(JSON.stringify({ error: { code: "invalid_api_key" } }), {
           status: 401,
           headers: { "content-type": "application/json" },
         }),
     )
-    const adapter = makeOpenAIAdapter({ apiKey: "bad", baseUrl: base })
+    const adapter = makeOpenAIAdapter({ apiKey: "bad", baseUrl, fetch: fetchFn })
     await expect(adapter.generate({ prompt: "x" })).rejects.toBeInstanceOf(ProviderError)
   })
 
   test("empty content falls back to empty string", async () => {
-    const base = startMock(
+    const { baseUrl, fetchFn } = startMock(
       () =>
         new Response(
           JSON.stringify({ id: "c", choices: [{ message: { role: "assistant", content: null } }] }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeOpenAIAdapter({ apiKey: "k", baseUrl: base })
+    const adapter = makeOpenAIAdapter({ apiKey: "k", baseUrl, fetch: fetchFn })
     expect(await adapter.generate({ prompt: "x" })).toBe("")
   })
 })

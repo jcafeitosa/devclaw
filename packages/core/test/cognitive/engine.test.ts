@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import { MemoryAuditSink } from "../../src/audit/sink.ts"
 import { CognitiveEngine } from "../../src/cognitive/engine.ts"
 import { MaxStepsExceededError, StepFailedError } from "../../src/cognitive/errors.ts"
 import { StubPlanner } from "../../src/cognitive/planner.ts"
@@ -6,11 +7,15 @@ import { DefaultReasoner } from "../../src/cognitive/reasoner.ts"
 import { ModelRouter } from "../../src/cognitive/router.ts"
 import type { StepExecutor } from "../../src/cognitive/step_executor.ts"
 import type { Step, StepContext } from "../../src/cognitive/types.ts"
+import { SafetyKernel } from "../../src/kernel/index.ts"
 import { HashEmbedder } from "../../src/memory/embedding.ts"
 import { InMemoryEpisodic } from "../../src/memory/episodic.ts"
 import { InMemoryLongTerm } from "../../src/memory/long_term.ts"
 import { MemoryService } from "../../src/memory/service.ts"
 import { InMemoryShortTerm } from "../../src/memory/short_term.ts"
+import { PermissionEvaluator } from "../../src/permission/evaluator.ts"
+import { createDefaultModerator, RegexPatternModerator } from "../../src/safety/moderator.ts"
+import type { Moderator } from "../../src/safety/types.ts"
 
 function memoryService() {
   const embedder = new HashEmbedder({ dim: 64 })
@@ -27,6 +32,7 @@ function makeEngine(
   exec: (ctx: StepContext) => Promise<{ output: unknown } | { error: string }>,
   memory = memoryService(),
   maxSteps = 10,
+  moderator?: Moderator,
 ) {
   const executor: StepExecutor = {
     async execute(ctx) {
@@ -45,6 +51,7 @@ function makeEngine(
       }),
       executor,
       memory,
+      moderator,
       maxSteps,
     }),
     memory,
@@ -126,5 +133,64 @@ describe("CognitiveEngine", () => {
     await engine.run({ goal: "g", expectedOutput: "x" })
     expect(seenTiers).toContain("executor")
     expect(seenTiers).toContain("advisor")
+  })
+
+  test("blocks step when output moderation flags content", async () => {
+    const { engine } = makeEngine(
+      [{ id: "a", description: "unsafe" }],
+      async () => ({ output: "contains LEAK marker" }),
+      memoryService(),
+      10,
+      new RegexPatternModerator([
+        {
+          name: "warn_marker",
+          category: "dangerous_instructions",
+          pattern: /LEAK/g,
+          severity: "warn",
+          modes: ["output"],
+        },
+      ]),
+    )
+    await expect(engine.run({ goal: "g", expectedOutput: "x" })).rejects.toBeInstanceOf(
+      StepFailedError,
+    )
+    await expect(engine.run({ goal: "g", expectedOutput: "x" })).rejects.toThrow(
+      /safety blocked output/i,
+    )
+  })
+
+  test("routes step execution through kernel when configured", async () => {
+    const memory = memoryService()
+    const executor: StepExecutor = {
+      async execute() {
+        return { output: "safe output" }
+      },
+    }
+    const engine = new CognitiveEngine({
+      planner: new StubPlanner([{ id: "a", description: "a" }]),
+      reasoner: new DefaultReasoner(),
+      router: new ModelRouter({
+        tiers: { executor: { providerId: "openai" } },
+        available: ["openai"],
+      }),
+      executor,
+      memory,
+      kernel: new SafetyKernel({
+        permission: new PermissionEvaluator({
+          rules: [
+            { tool: "openai", action: "cognitive.step", decision: "deny", reason: "blocked" },
+          ],
+          defaultDecision: "allow",
+        }),
+        safety: createDefaultModerator(),
+        audit: new MemoryAuditSink(),
+      }),
+    })
+    await expect(engine.run({ goal: "g", expectedOutput: "x" })).rejects.toBeInstanceOf(
+      StepFailedError,
+    )
+    await expect(engine.run({ goal: "g", expectedOutput: "x" })).rejects.toThrow(
+      /permission denied/i,
+    )
   })
 })

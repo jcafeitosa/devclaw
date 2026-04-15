@@ -22,3 +22,8 @@ description: Roadmap status across the eight implementation phases.
 | Phase 8 — Advanced (Runtimes, Nodes, Capabilities) | 🟡 all three modules landed |
 
 See the `docs/TODO.md` checklist in the repo for the authoritative status.
+
+For the current documentation alignment work, also see:
+
+- [Agent liveness](/guides/agent-liveness/)
+- [Vault alignment](/guides/vault-alignment/)

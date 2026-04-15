@@ -23,19 +23,22 @@ describe("registerBuiltins", () => {
     const ids = catalog.list().map((d) => d.id)
     expect(ids).toContain("anthropic")
     expect(ids).not.toContain("openai")
+    expect(ids).toContain("ollama")
   })
 
-  test("registers both when both configured", async () => {
+  test("registers built-in cloud providers plus local ollama when configured", async () => {
     const store = new FilesystemAuthStore({ dir, passphrase: "pw" })
     await store.save("anthropic", { type: "api", key: "sk-a" })
     await store.save("openai", { type: "api", key: "sk-o" })
+    await store.save("google", { type: "api", key: "sk-g" })
+    await store.save("openrouter", { type: "api", key: "sk-r" })
     const catalog = await registerBuiltins({ store })
     expect(
       catalog
         .list()
         .map((d) => d.id)
         .sort(),
-    ).toEqual(["anthropic", "openai"])
+    ).toEqual(["anthropic", "google", "ollama", "openai", "openrouter"])
   })
 
   test("skips providers stored as oauth (not api)", async () => {
@@ -46,6 +49,30 @@ describe("registerBuiltins", () => {
       expiresAt: Date.now() + 60_000,
     })
     const catalog = await registerBuiltins({ store })
-    expect(catalog.list().length).toBe(0)
+    expect(catalog.list().map((d) => d.id)).toEqual(["ollama"])
+  })
+
+  test("accepts gemini auth alias for google provider", async () => {
+    const store = new FilesystemAuthStore({ dir, passphrase: "pw" })
+    await store.save("gemini", { type: "api", key: "sk-gemini" })
+    const catalog = await registerBuiltins({ store })
+    expect(
+      catalog
+        .list()
+        .map((d) => d.id)
+        .sort(),
+    ).toEqual(["google", "ollama"])
+  })
+
+  test("accepts openrouter auth for openrouter provider", async () => {
+    const store = new FilesystemAuthStore({ dir, passphrase: "pw" })
+    await store.save("openrouter", { type: "api", key: "sk-router" })
+    const catalog = await registerBuiltins({ store })
+    expect(
+      catalog
+        .list()
+        .map((d) => d.id)
+        .sort(),
+    ).toEqual(["ollama", "openrouter"])
   })
 })
