@@ -42,6 +42,8 @@ export interface IndividualCapsule {
   observations: Observation[]
   metadata: CapsuleMetadata
   feedback: CapsuleFeedback
+  // Optional goal association (ECAP/TECAP)
+  goalId?: string
   pinned?: boolean
   source?: string
 }

@@ -18,6 +18,7 @@ export const ecap_capsule = sqliteTable(
     triplet_skill: text("triplet_skill").notNull(),
     observations: text("observations", { mode: "json" }).$type<string[]>().notNull(),
     metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown> | null>(),
+    goal_id: text("goal_id").$type<string | null>(),
     feedback_applications_count: integer("feedback_applications_count").notNull().default(0),
     feedback_success_count: integer("feedback_success_count").notNull().default(0),
     feedback_score_avg: real("feedback_score_avg"),
