@@ -70,6 +70,28 @@ packages/
 └── docs-site/      Astro 6 + Starlight documentation site
 ```
 
+## Agent liveness
+
+The important question is not only "can an agent answer?" but "what makes it
+feel alive, autonomous, active, and proactive?"
+
+The main ingredients are:
+
+- persistent identity and mission
+- a durable workspace and session model
+- workspace metadata roots and discovery order, not just cwd
+- a reasoning/planning loop that chooses the next action
+- tool use with feedback, verification, and error recovery
+- memory write-back and recall across turns
+- proactive triggers such as timers, events, and wakeups
+- communication surfaces for status, approval, delegation, and progress
+- budget and governance boundaries so autonomy stays controlled
+- learning/reflection loops so behavior improves over time
+- a gateway/runtime layer that keeps the agent host alive across sessions
+
+See the detailed guide in the docs site:
+`packages/docs-site/src/content/docs/guides/agent-liveness.md`.
+
 ## ADRs
 
 19 accepted Architecture Decision Records. See `vault://18_decisions/`.

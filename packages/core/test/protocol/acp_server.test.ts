@@ -54,8 +54,10 @@ describe("ACPServer", () => {
     const s = baseServer()
     await call(s, "initialize", { clientName: "t", clientVersion: "0", capabilities: {} })
     const res = await call(s, "session/new", { cwd: "/tmp" })
-    const info = res.result as { id: string }
+    const info = res.result as { id: string; state: string; updatedAt: number }
     expect(info.id).toMatch(/^sess_/)
+    expect(info.state).toBe("idle")
+    expect(info.updatedAt).toBeGreaterThan(0)
   })
 
   test("prompt invokes handler + returns summary", async () => {

@@ -194,6 +194,62 @@ describe("ACP permission request flow", () => {
     expect(permReq).toBeDefined()
   })
 
+  test("permission requests move the session through running -> awaiting_permission -> running -> idle", async () => {
+    const sent: { method?: string; id?: number; params?: unknown }[] = []
+    const requestSeen = Promise.withResolvers<void>()
+    let requestId = 0
+    let sessionId = ""
+    let server!: ACPServer
+    server = new ACPServer({
+      agentName: "a",
+      agentVersion: "0",
+      send: (raw) => {
+        const msg = JSON.parse(raw)
+        sent.push(msg)
+        if (msg.method === "session/permission/request") {
+          requestId = msg.id
+          const state = server.listSessions().find((s) => s.id === sessionId)
+          expect(state?.state).toBe("awaiting_permission")
+          requestSeen.resolve()
+        }
+      },
+      handlers: {
+        prompt: async (p, ctx) => {
+          const running = server.listSessions().find((s) => s.id === p.sessionId)
+          expect(running?.state).toBe("running")
+          const decision = await ctx.requestPermission({
+            toolId: "write_file",
+            input: { path: "/tmp/x" },
+            reason: "test",
+            riskLevel: "medium",
+          })
+          const resumed = server.listSessions().find((s) => s.id === p.sessionId)
+          expect(resumed?.state).toBe("running")
+          return {
+            sessionId: p.sessionId,
+            summary: `permit=${decision.allow}`,
+            toolCalls: 0,
+            durationMs: 0,
+          }
+        },
+      },
+    })
+    sessionId = await initSession(server)
+    const pending = call(server, "prompt", { sessionId, prompt: "go" })
+    await requestSeen.promise
+    await server.handle(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: requestId,
+        result: { allow: true },
+      }),
+    )
+    const result = await pending
+    expect((result.result as { summary: string }).summary).toBe("permit=true")
+    const final = server.listSessions().find((s) => s.id === sessionId)
+    expect(final?.state).toBe("idle")
+  })
+
   test("requestPermission throws if send not configured", async () => {
     const s = new ACPServer({
       agentName: "a",

@@ -1,4 +1,8 @@
+import type { SafetyKernel } from "../kernel/index.ts"
 import type { MemoryService } from "../memory/service.ts"
+import { SafetyViolationError } from "../safety/errors.ts"
+import { createDefaultModerator } from "../safety/moderator.ts"
+import type { Moderator } from "../safety/types.ts"
 import { MaxStepsExceededError, StepFailedError } from "./errors.ts"
 import { PlanGraph } from "./plan_graph.ts"
 import type { Planner } from "./planner.ts"
@@ -13,6 +17,8 @@ export interface CognitiveEngineConfig {
   router: ModelRouter
   executor: StepExecutor
   memory: MemoryService
+  kernel?: SafetyKernel
+  moderator?: Moderator
   maxSteps?: number
   defaultTier?: Tier
   onStepCompleted?: (ctx: StepContext, state: StepState) => void | Promise<void>
@@ -67,7 +73,10 @@ export class CognitiveEngine {
       }
       const started = state.startedAt
       try {
-        const { output } = await this.cfg.executor.execute(ctx)
+        const { output } = this.cfg.kernel
+          ? await this.executeWithKernel(task, ctx)
+          : await this.cfg.executor.execute(ctx)
+        if (!this.cfg.kernel) await this.assertSafeOutput(output)
         state.status = "completed"
         state.completedAt = Date.now()
         state.output = output
@@ -109,6 +118,41 @@ export class CognitiveEngine {
     return this.finalize(plan, states, episodes, "done", true)
   }
 
+  private async executeWithKernel(task: Task, ctx: StepContext): Promise<{ output: unknown }> {
+    const self = this
+    let output: unknown
+    for await (const _event of this.cfg.kernel!.invoke(
+      {
+        actor: task.agentId ?? "cognitive",
+        sessionId: task.sessionId,
+        taskId: task.goal,
+      },
+      {
+        kind: "cognitive",
+        tool: ctx.route.providerId,
+        action: "cognitive.step",
+        inputText: `${task.goal}\n${ctx.step.description}`,
+        input: {
+          goal: task.goal,
+          stepId: ctx.step.id,
+          providerId: ctx.route.providerId,
+        },
+        target: ctx.step.id,
+        execute: async function* () {
+          const result = await self.cfg.executor.execute(ctx)
+          output = result.output
+          const text =
+            typeof output === "string" ? output : output === undefined ? "" : JSON.stringify(output)
+          if (text) yield { type: "text" as const, content: text }
+          yield { type: "completed" as const }
+        },
+      },
+    )) {
+      // Kernel handles safety/permission/audit gating.
+    }
+    return { output }
+  }
+
   private finalize(
     plan: Plan,
     states: Map<string, StepState>,
@@ -122,6 +166,26 @@ export class CognitiveEngine {
       episodes,
       completed,
       reason,
+    }
+  }
+
+  private async assertSafeOutput(output: unknown): Promise<void> {
+    const text = this.outputText(output)
+    if (!text) return
+    const moderator = this.cfg.moderator ?? createDefaultModerator()
+    const moderation = await moderator.check(text, "output")
+    if (moderation.flags.length === 0) return
+    throw new SafetyViolationError("output", moderation.flags)
+  }
+
+  private outputText(output: unknown): string | null {
+    if (typeof output === "string") return output
+    if (typeof output === "number" || typeof output === "boolean") return String(output)
+    if (!output) return null
+    try {
+      return JSON.stringify(output)
+    } catch {
+      return String(output)
     }
   }
 }

@@ -29,3 +29,22 @@ export class OverlapRanker implements Ranker {
     return hits / Math.min(goalVocab.size, itemSet.size)
   }
 }
+
+export interface TokenAwareRankerConfig {
+  alpha?: number
+}
+
+export class TokenAwareRanker implements Ranker {
+  constructor(
+    private readonly base: Ranker,
+    private readonly cfg: TokenAwareRankerConfig = {},
+  ) {}
+
+  score(request: ContextRequest, item: ContextItem): number {
+    const baseScore = this.base.score(request, item)
+    if (baseScore <= 0) return baseScore
+    const tokens = Math.max(1, item.tokens ?? tokenize(item.content).length)
+    const alpha = this.cfg.alpha ?? 0.35
+    return baseScore * (1 / (1 + alpha * Math.log(tokens)))
+  }
+}

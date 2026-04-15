@@ -1,9 +1,135 @@
 # DevClaw — TODO Roadmap
 
-> Last audited: 2026-04-14 (deep implementation audit of all 37 modules + 4 packages).
+> Last audited: 2026-04-14 (deep implementation audit + 7-specialist debate panel).
 > Tracks progress against the vault roadmap (`vault://23_roadmap/`).
 
 Legend: ✅ done · 🟡 needs depth · ⏳ in progress · ⬜ pending · 🔒 claimed (agent working)
+
+---
+
+## 🎯 Panel-consolidated single bet (2026-04-14)
+
+> **Fundar os 37 módulos existentes num loop cross-CLI consensus demoável, com medidor de custo visível, memória goal-tagged, atrás de safety-kernel + storage-adapter-ports — em TUI Ink — antes de qualquer canal, admin-UI, ou módulo novo.**
+
+Vence os 5 rivais (openclaw/paperclip/clawcode/ClawTeam/opencode) simultaneamente:
+- vs **opencode**: consensus cross-CLI (eles são single-CLI)
+- vs **clawcode**: ECAP+goal-alignment
+- vs **openclaw**: inteligência em vez de surface de canais
+- vs **paperclip**: execution+learning+methodology vs só coordenação
+- vs **ClawTeam**: é slash-command, já superado
+
+Detalhes: ver ADRs **020** (storage ports), **022** (safety kernel), ambas foundational.
+
+---
+
+## 🧭 Documentation / vault alignment backlog
+
+These items track the remaining gaps between the current repo docs and the
+Obsidian source model. They are not feature work; they are spec alignment work.
+
+| ID | Gap | Why it matters | Canonical refs | Status |
+|---|---|---|---|---|
+| **D-10** | Formal gateway contract | Host lifecycle, supervision, connection ownership, handshake and reconnect semantics are part of the vault model but not yet fully mirrored in repo docs | `vault://53_gateway_daemon/`, `docs/design/daemon.md` | 🟡 |
+| **D-11** | Workspace contract + metadata roots | ClawCode-style root merge/discovery order needs to be explicit so "workspace" is not just cwd | `vault://06_agent_os/`, `vault://21_heritage/`, `packages/docs-site/src/content/docs/guides/vault-alignment.md` | 🟡 |
+| **D-12** | Liveness model spec | The repo now has prose, but the vault model should be expressed as one coherent operator story across agent/os/gateway/work/comm/learning | `packages/docs-site/src/content/docs/guides/agent-liveness.md` | 🟡 |
+| **D-13** | Work + comm + subagent integration spec | Need one cross-cutting doc for how work states, channels, and subagents cooperate to keep the agent active without losing isolation | `docs/design/{work,comm,subagents}.md` | 🟡 |
+| **D-14** | Vault-aligned doc index | New guide pages should be discoverable from the home page and architecture flow without knowing vault names | `packages/docs-site/src/content/docs/index.md`, `packages/docs-site/src/content/docs/guides/architecture.md` | ✅ |
+| **D-15** | Routine scheduler / wakeup contract | Paperclip's recurring routines, trigger kinds, coalescing, and catch-up policy are a strong model for proactive agent motion | `packages/docs-site/src/content/docs/guides/agent-liveness.md`, `docs/design/work.md` | 🟡 |
+| **D-16** | Issue checkout + stale-lock recovery | Atomic checkout, checkout-run ownership, adoption of stale locks, and release rules make execution state much more resilient | `docs/design/work.md`, `docs/design/governance.md` | 🟡 |
+| **D-17** | Run/activity ledger spec | A unified activity log for runs, wakeups, and mutations would make agents easier to audit and debug over time | `docs/design/daemon.md`, `packages/docs-site/src/content/docs/guides/architecture.md` | 🟡 |
+| **D-18** | Execution workspace/runtime control spec | Managed checkouts, workspace runtime services, and per-run runtime control are not yet first-class in the repo docs | `docs/design/daemon.md`, `docs/design/work.md`, `packages/docs-site/src/content/docs/reference/packages.md` | 🟡 |
+| **D-19** | Project/workspace/goals contract | Paperclip's goals/projects/workspaces model is stricter than our current prose and should be mapped explicitly to Devclaw work structure | `docs/design/governance.md`, `docs/design/team.md`, `packages/docs-site/src/content/docs/reference/protocols.md` | 🟡 |
+
+Acceptance criteria for this backlog:
+
+- every gap above has a corresponding repo doc page or section
+- the repo docs reference the same vocabulary as the vault
+- new implementation work can point to a single canonical doc set
+- no second taxonomy is introduced in the repo
+
+---
+
+## 🔴 Sprint 1 (próximas 2 semanas) — BLOCKERS
+
+| ID | Task | Why | Files | Status |
+|---|---|---|---|---|
+| **A-01** | **ADR-020: Storage/Vector/Queue/Blob adapter ports** | Destrava H-01 sem lock-in | `packages/core/src/adapter/{storage,vector,queue,blob}.ts` (new) | ✅ (2026-04-14, ports + memory impls + registry + queue retrofit, +8 testes, `@devclaw/core` typecheck green) |
+| **A-02** | **ADR-022: Safety kernel (non-bypassable pipeline)** | Fecha 3 CVEs; entry points package-private | `packages/core/src/kernel/index.ts` (new) | ✅ (2026-04-14, core `SafetyKernel` + wiring em tool/provider/bridge fallback/cognitive, +14 integration tests, `@devclaw/core` typecheck green. Persistência de permission rules segue em S-03.) |
+| **S-01** | Wire `RegexPatternModerator` em bridge + tool executor | **CVSS 8.1** — existe mas zero call-site | `bridge/spawn_bridge.ts`, `bridge/claude_code.ts`, `tool/executor.ts`, `tool/errors.ts` (+`ToolSafetyError`), `test/safety/wiring.test.ts` | ✅ (2026-04-14, TDD RED→GREEN, +8 tests, 1171 pass) |
+| **S-02** | Daemon loopback bind + bearer auth (`DEVCLAW_DAEMON_TOKEN`) | **CVSS 7.3** — hoje bind `0.0.0.0` sem auth | `daemon/src/{app,bin}.ts`, `test/app_hardened.test.ts` | ✅ (2026-04-14, `requireFromLoopback` flag + auto-token `~/.devclaw/daemon.token` 0600 + bind `127.0.0.1` default, +5 tests, 1176 pass) |
+| **S-04** | Per-install random salt + refuse default passphrase | Mata footgun `"devclaw-dev"` + salt fixo "devclaw.auth.v1" | `auth/file_crypto.ts`, `auth/filesystem_store.ts`, `daemon/src/bin.ts`, `test/auth/file_crypto_envelope.test.ts` | ✅ (2026-04-14, envelope format `[MAGIC\|SALT\|IV\|CT+tag]` + legacy backward-compat + refuse em NODE_ENV=production, +9 tests, 1185 pass) |
+| **C-01** | Anthropic `cache_control` + capture `usage.*_tokens` | **-40% custo em 1 dia** — hoje `generate` retorna só string, descarta usage | `provider/anthropic_adapter.ts`, `provider/openai_adapter.ts`, `provider/catalog.ts`, `test/provider/prompt_cache.test.ts` | ✅ (2026-04-14, TDD RED→GREEN, +9 tests, 1163 pass) |
+
+## 🟠 Sprint 2 (semanas 3-4) — FOUNDATION
+
+| ID | Task | Depends on | Status |
+|---|---|---|---|
+| **H-01** | Drizzle ORM schemas + migrations (via A-01 ports) | A-01 | ✅ (2026-04-14, 11 tabelas + bun:sqlite client + drizzle migrator, dev.db gitignored) |
+| **H-07** | Store adapters in-memory → SQLite | A-01 + H-01 | ✅ (2026-04-14, opt-in sqlitePath em work/checkpoint/learning/comm, 4 suites novas, 1193 pass) |
+| **H-03** | Provider adapters: Google AI + Ollama | — | ✅ (2026-04-14, via Vercel AI SDK + OpenAI-compat shim; registerBuiltins carrega ambos; I-01 OpenRouter herda mesmo padrão) |
+| **H-05** | E2E integration test | — | ✅ (2026-04-14, test/e2e/lifecycle.test.ts exercita auth→discover→provider→bridge→cognitive→tool→memory) |
+| **H-09** | Terminal real PTY (node-pty) | — | ✅ (2026-04-14, NodePtyAdapter default + BunPtyAdapter fallback, resize/signals/stdin funcionais) |
+| **S-03** | Permission persistence (SQLite + hot-reload) | H-01 | ✅ (2026-04-14, `PermissionRuleStore` SQLite + `PersistentScopedPermissionEvaluator` with `rule_changed` reload, +4 test files green, `@devclaw/core` typecheck green) |
+| **I-02** | ACP session persistence + state machine + reconnect + pending-permission durable | H-01 | ✅ (2026-04-14, `ACPSessionStore` SQLite + estados `idle/running/awaiting_permission` + `ACPServer.sessionStore` em `session/new/load/close`, e `ACPPermissionRequestStore` com replay automático no reconnect do transporte via `setSend()`) |
+| **P-01** | Memory recall via `VectorAdapter` (pgvector HNSW) — fecha B1 (800ms→8ms) | A-01 | 🟡 (2026-04-14, `SqliteVectorAdapter` persistente + recall reidratável no `InMemoryLongTerm`; falta benchmark/pgvector HNSW final) |
+| **P-02** | Daemon concurrency semaphore + request draining + graceful shutdown | — | ✅ (2026-04-14, `beginShutdown`/`drain`/`inflight` API em `/invoke` e `/consensus`, `/health` expõe `shuttingDown:true`, SIGINT/SIGTERM drain até 30s no bin.ts, +4 tests) |
+| **D-01** | Binário `devclaw` (bin shim em package.json) + `devclaw doctor` com SHA256 binary pin | — | ✅ (2026-04-14, `devclaw doctor [--pin\|--json]` em `packages/cli/src/commands/doctor.ts` — pin grava `~/.devclaw/bridges.lock`, default checa drift com exit 1 + bin shim `#!/usr/bin/env bun` + chmod +x em `packages/cli/src/index.ts`, +7 tests) |
+
+## 🟡 Sprint 3 (semanas 5-8) — KILL SHOT DEMOÁVEL
+
+| ID | Task | Impact | Status |
+|---|---|---|---|
+| **KILL-01** | **`/consensus <task>` — cross-CLI fan-out + reflection winner** | Demo único que nenhum rival tem | ✅ (2026-04-14, 5 superfícies: core `runConsensus` + `devclaw consensus [--live]` CLI + `POST /consensus` daemon + slash builtin `consensus` + Ink TUI live render via `ConsensusObserver`, +22 tests) |
+| **C-02** | Token-aware ranker: `score = rel × 1/(1+α·log(tokens))`, α=0.35 | -15% custo adicional; reordena prefix-stable para cache | ✅ (2026-04-14, `TokenAwareRanker` aplicado no `ContextAssembler` com α=0.35, +2 testes) |
+| **C-03** | Budget hard-stop $0.15/task, $2/session, $10/day + TUI warnings | Paperclip parity | ✅ (2026-04-14, `BudgetEnforcer` wired into `runConsensus` + fallback bridge execution + `/consensus` CLI/daemon + Ink live budget summary/warnings, +4 tests) |
+| **I-01** | Google AI + Ollama + **OpenRouter** (OpenRouter = 100+ modelos em 1 adapter) | Substitui H-03; unlock offline + rate-limit diversification | ✅ (2026-04-14, `makeOpenRouterAdapter` + `registerBuiltins()` auth/env wiring, +2 tests) |
+| **D-02** | 10 slash commands wired: `/help /tdd /code-review /plan /doctor /init /checkpoint /rewind /tasks /clear` | Hoje só 4 em builtins.ts, **nenhum wired ao CLI** | ✅ (2026-04-14, `devclaw slash` entrypoint + 10 roadmap slash commands list/render/run via builtins registry, +3 tests) |
+| **P-03** | Queue `nack` re-XADD (fix cosmetic backoff; poison msg stalls consumer hoje) | +40% throughput em carga com 1% poison | ✅ (2026-04-15, TDD + fix) |
+| **P-04** | Bridge output cache keyed by `hash(prompt+cli+cwd.git.HEAD)` | ~15% hit em re-runs; p50 3.2s → 50ms on hit | ⬜ |
+
+## 🟢 Sprint 4 (semanas 9-12) — POLISH + SHIP
+
+| ID | Task | Status |
+|---|---|---|
+| **KILL-02** | Preencher `vault://16_agents/` com 14 role prompts (PM/Arch/BE/FE/QA/SRE/Sec/Doc/...) hot-load via `skill` module | ⬜ |
+| **KILL-03** | Goal-aligned ECAP/TECAP — adicionar `goal_id` em capsules + query view "o que aprendi sobre shipping auth" | ⬜ |
+| **D-03** | TUI (Ink) mínima: chat + task list + cost meter em tempo real | ⬜ |
+| **D-04** | Install script (`curl \| bash`) + brew tap + 5 docs pages rewrite (home/install/10-commands/mental-model/FAQ) | 🔒 claimed by copilot-c6f9ce6d 2026-04-15T12:22:00Z |
+| **C-04** | Anthropic/OpenAI Batch API para async (-50% em 30% do tráfego) | ⬜ |
+
+## ⚫ Deferred (pós-v0.1, rastreado)
+
+| ID | Task | Why deferred |
+|---|---|---|
+| **A-03** | ADR-021 tsconfig project refs + tier split `core/` em `core-domain/core-services/core-adapters` | Refactor grande, baixo user-impact imediato |
+| **H-09** | Real PTY via node-pty (resize/signals) | P7 polish, não kill shot |
+| **H-05** | E2E integration test | Evolui com KILL-01 (consensus loop) |
+| **I-03** | Canais Slack/Telegram/Discord | Produto arbitrou contra (dilui positioning) |
+| **I-04** | OpenCode bridge (Mode A) + `devclaw pair opencode` (Mode B) | Só depois que interop tiver demanda |
+| **I-05** | Plugin manifest loader | Depois de módulos estabilizarem |
+| **P6-02** | Admin-UI / Web console | Só depois TUI ser amada |
+| **P-05** | Memoize ranker goalVocab | Micro-otimização (~30ms p95) |
+| **S-05** | Audit chain expansion (bridge.stderr, memory mutations) | Fica como stretch de ADR-022 |
+| **Team comp** | Preencher `vault://44_team_composition/` (5 stubs) | Parte de KILL-02 sprint 4 |
+
+## 🚨 Red flags do painel (rastreados em ADR-022)
+
+1. 🛡️ **PATH-hijack `claude` trojan** → `devclaw doctor` SHA256-pin em D-01
+2. 🏛️ **Silent data loss on daemon crash** → bridge WAL + idempotency em /invoke (P-02)
+3. 💰 **`generate` retorna só `string`, usage descartado** → blocker de tudo (C-01)
+4. 🔌 **ACP permission-pending em memória** → reconnect = "denied" falso (I-02)
+
+## 📊 SLO targets (post-Sprint 2)
+
+- `POST /invoke` p95 <8s, p99 <15s (50% cached, Claude Sonnet)
+- `queue.dequeue` p99 <50ms
+- `memory.recall` p99 <20ms @ 100k items (pgvector HNSW)
+- `context.assemble` p95 <100ms, p99 <300ms
+- Daemon graceful shutdown <30s com zero in-flight loss
+- Cost per task: $0.30 → $0.10 (current $0.30 → Sprint 1 C-01 puts at ~$0.18 → Sprint 3 C-02+C-03 ~$0.13 → Sprint 4 C-04 ~$0.098)
+- 0 CVSS≥7.0 em scan pós-Sprint 1
+
+---
 
 ---
 
@@ -39,20 +165,18 @@ rm .devclaw/locks/<task-id>.lock
 
 ---
 
-## Codebase stats (audited 2026-04-14)
+## Codebase stats (audited 2026-04-14, post-Sprint 1+2)
 
 | Metric | Value |
 |---|---|
-| Core modules | 37 (all real implementations, zero stubs) |
-| Core src files | 266 |
-| Core src lines | ~17,200 |
-| Test files | 191 (core: 185, cli: 3, daemon: 3) |
-| Tests passing | 1,110 |
-| Assertions | 1,945 |
-| Test lines | ~14,600 |
+| Core modules | 38 (37 originais + `adapter/` ADR-020) |
+| Core src files | 294 |
+| Test files | 198 |
+| Tests passing | 1,193 |
+| Assertions | 2,111 |
 | Packages | 4 (core, cli, daemon, docs-site) |
 | CLI commands | 7 (auth, bridges, discover, init, invoke, providers, version) |
-| Daemon routes | 9 REST + 3 WebSocket |
+| Daemon routes | 9 REST + 3 WebSocket (loopback-bound + bearer-guarded por S-02) |
 
 ---
 
@@ -138,15 +262,15 @@ All 14 modules implemented with real logic, passing tests.
 
 | ID | Task | Scope | Files touched | Status |
 |---|---|---|---|---|
-| H-01 | **Drizzle ORM schemas + migrations** | Add `drizzle-orm` dep, create `packages/core/src/db/schema/` with 11 tables from vault spec (`11_data_models/schemas`), add `bun db:generate` + `bun db:migrate` scripts, wire SQLite for dev | `packages/core/src/db/` (new), `packages/core/package.json`, root `package.json` | ⬜ |
-| H-02 | **Daemon HTTP auth** | Add `@elysiajs/bearer` + `@elysiajs/jwt`, protect all routes except `GET /health`, loopback bypass for 127.0.0.1 | `packages/daemon/src/app.ts`, `packages/daemon/package.json` | ⬜ |
-| H-03 | **Provider adapters: Google AI + Ollama** | Add Google + Ollama adapters to `provider/`, register in catalog via `registerBuiltins()`, Vercel AI SDK wrappers | `packages/core/src/provider/` (new files), `packages/core/package.json` | ⬜ |
-| H-04 | **Safety integration into pipeline** | Wire `safety/moderator` into bridge execute path (pre-prompt) + cognitive engine (post-output), add integration tests | `packages/core/src/bridge/fallback.ts`, `packages/core/src/cognitive/engine.ts`, tests | ⬜ |
-| H-05 | **E2E integration test** | Full lifecycle: auth → discover → provider → bridge → cognitive → tool → result. In `test/e2e/` | `packages/core/test/e2e/` (new) | ⬜ |
+| H-01 | **Drizzle ORM schemas + migrations** | Add `drizzle-orm` dep, create `packages/core/src/db/schema/` with 11 tables from vault spec (`11_data_models/schemas`), add `bun db:generate` + `bun db:migrate` scripts, wire SQLite for dev | `packages/core/src/db/` (new), `packages/core/package.json`, root `package.json` | ✅ |
+| H-02 | **Daemon HTTP auth** | Add `@elysiajs/bearer` + `@elysiajs/jwt`, protect all routes except `GET /health`, loopback bypass for 127.0.0.1 | `packages/daemon/src/app.ts`, `packages/daemon/package.json` | ✅ (coberto por S-02) |
+| H-03 | **Provider adapters: Google AI + Ollama** | Add Google + Ollama adapters to `provider/`, register in catalog via `registerBuiltins()`, Vercel AI SDK wrappers | `packages/core/src/provider/` (new files), `packages/core/package.json` | ✅ |
+| H-04 | **Safety integration into pipeline** | Wire `safety/moderator` into bridge execute path (pre-prompt) + cognitive engine (post-output), add integration tests | `packages/core/src/bridge/fallback.ts`, `packages/core/src/cognitive/engine.ts`, tests | ✅ (coberto por S-01) |
+| H-05 | **E2E integration test** | Full lifecycle: auth → discover → provider → bridge → cognitive → tool → result. In `test/e2e/` | `packages/core/test/e2e/` (new) | ✅ |
 | H-06 | **Root dev scripts** | Wire `bun dev:daemon` (Elysia hot reload), `bun dev:docs` (Astro dev server) in root `package.json`, turbo dev pipeline | `package.json`, `turbo.json` | ✅ |
-| H-07 | **Store adapters: in-memory → SQLite** | Replace `Map<>` stores (work, checkpoint, learning, comm) with SQLite via `bun:sqlite` + Drizzle, keeping in-memory as fallback | `packages/core/src/work/store.ts`, `checkpoint/store.ts`, `learning/store.ts`, `comm/thread.ts` | ⬜ |
+| H-07 | **Store adapters: in-memory → SQLite** | Replace `Map<>` stores (work, checkpoint, learning, comm) with SQLite via `bun:sqlite` + Drizzle, keeping in-memory as fallback | `packages/core/src/work/store.ts`, `checkpoint/store.ts`, `learning/store.ts`, `comm/thread.ts` | ✅ |
 | H-08 | **Missing test coverage for audit module** | audit has 1 test file (136 lines) vs 249 lines of src — needs hash chain verification tests, multi-sink tests | `packages/core/test/audit/` | ✅ |
-| H-09 | **Terminal: real PTY support** | Current `BunPtyAdapter` uses `Bun.spawn` without PTY. Add `node-pty` or native PTY via Bun FFI for resize/signals | `packages/core/src/terminal/adapter.ts` | ⬜ |
+| H-09 | **Terminal: real PTY support** | Current `BunPtyAdapter` uses `Bun.spawn` without PTY. Add `node-pty` or native PTY via Bun FFI for resize/signals | `packages/core/src/terminal/adapter.ts` | ✅ |
 
 ---
 
