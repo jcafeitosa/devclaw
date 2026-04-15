@@ -9,12 +9,15 @@ import {
 let lastBody: Record<string, string> = {}
 
 function startMock(respond: (body: Record<string, string>) => Response) {
-  const fetchFn = async (_input: string | URL | Request, init?: RequestInit | BunFetchRequestInit) => {
+  const fetchFn = async (
+    _input: string | URL | Request,
+    init?: RequestInit | BunFetchRequestInit,
+  ) => {
     const json = JSON.parse(String(init?.body ?? "{}")) as Record<string, string>
     lastBody = json
     return respond(json)
   }
-  return { endpoint: "http://mock-token.test/token" as TokenEndpoint, fetchFn }
+  return { endpoint: "http://mock-token.test/token" as TokenEndpoint, fetchFn: fetchFn as unknown as typeof fetch }
 }
 
 beforeEach(() => {

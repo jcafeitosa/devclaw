@@ -11,6 +11,7 @@ export interface OpenAIConfig {
   baseUrl?: string
   defaultModel?: string
   organization?: string
+  fetch?: typeof fetch | ((input: string | URL | Request, init?: RequestInit | BunFetchRequestInit) => Promise<Response>)
 }
 
 interface ChatCompletionResponse {
@@ -30,6 +31,7 @@ interface ChatCompletionResponse {
 export function makeOpenAIAdapter(cfg: OpenAIConfig): ProviderDescriptor {
   const baseUrl = cfg.baseUrl ?? "https://api.openai.com"
   const defaultModel = cfg.defaultModel ?? "gpt-4o-mini"
+  const fetcher = cfg.fetch ?? fetch
 
   async function generateWithUsage(opts: GenerateOpts): Promise<GenerateResult> {
     const messages: Array<{ role: string; content: string }> = []
@@ -49,7 +51,7 @@ export function makeOpenAIAdapter(cfg: OpenAIConfig): ProviderDescriptor {
     }
     if (cfg.organization) headers["openai-organization"] = cfg.organization
 
-    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+    const res = await fetcher(`${baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers,
       body: JSON.stringify(body),

@@ -9,7 +9,10 @@ afterEach(() => {
 })
 
 function startMock(respond: () => Response) {
-  const fetchFn = async (_input: string | URL | Request, init?: RequestInit | BunFetchRequestInit) => {
+  const fetchFn = async (
+    _input: string | URL | Request,
+    init?: RequestInit | BunFetchRequestInit,
+  ) => {
     const body = JSON.parse(String(init?.body ?? "{}")) as unknown
     const headers: Record<string, string> = {}
     if (init?.headers instanceof Headers) {

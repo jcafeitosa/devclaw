@@ -9,7 +9,10 @@ afterEach(() => {
 })
 
 function startMock(respond: () => Response) {
-  const fetchFn = async (_input: string | URL | Request, init?: RequestInit | BunFetchRequestInit) => {
+  const fetchFn = async (
+    _input: string | URL | Request,
+    init?: RequestInit | BunFetchRequestInit,
+  ) => {
     const body = JSON.parse(String(init?.body ?? "{}")) as unknown
     const headers: Record<string, string> = {}
     if (init?.headers instanceof Headers) {
@@ -38,7 +41,7 @@ describe("AnthropicAdapter", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         ),
     )
-    const adapter = makeAnthropicAdapter({ apiKey: "sk-ant-test", baseUrl, fetch: fetchFn })
+    const adapter = makeAnthropicAdapter({ apiKey: "sk-ant-test", baseUrl, fetch: fetchFn as unknown as typeof fetch })
     const out = await adapter.generate({ prompt: "Hi", model: "claude-3-5-sonnet" })
     expect(out).toBe("Hello world")
     expect(lastRequest?.headers["x-api-key"]).toBe("sk-ant-test")

@@ -11,6 +11,7 @@ export interface AnthropicConfig {
   baseUrl?: string
   defaultModel?: string
   anthropicVersion?: string
+  fetch?: typeof fetch | ((input: string | URL | Request, init?: RequestInit | BunFetchRequestInit) => Promise<Response>)
 }
 
 interface ContentBlock {
@@ -35,6 +36,7 @@ export function makeAnthropicAdapter(cfg: AnthropicConfig): ProviderDescriptor {
   const baseUrl = cfg.baseUrl ?? "https://api.anthropic.com"
   const defaultModel = cfg.defaultModel ?? "claude-opus-4-5-20250929"
   const version = cfg.anthropicVersion ?? "2023-06-01"
+  const fetcher = cfg.fetch ?? fetch
 
   async function generateWithUsage(opts: GenerateOpts): Promise<GenerateResult> {
     const body: Record<string, unknown> = {
@@ -49,7 +51,7 @@ export function makeAnthropicAdapter(cfg: AnthropicConfig): ProviderDescriptor {
     }
     if (opts.temperature !== undefined) body.temperature = opts.temperature
 
-    const res = await fetch(`${baseUrl}/v1/messages`, {
+    const res = await fetcher(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
